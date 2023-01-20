@@ -1,0 +1,71 @@
+\documentclass[11pt]{article}
+\usepackage{ece786}
+
+%%% For FAS
+\usepackage{tikz}
+\usetikzlibrary{automata, positioning, arrows}
+
+%%%%%%%%%%%%%%%%%%%% name/id
+\rfoot{\small Brian Park | 200190057}
+
+
+%%%%%%%%%%%%%%%%%%%% Course/HW info
+\newcommand*{\instr}{Huiyang Zhou}
+\newcommand*{\term}{Spring 2023}
+\newcommand*{\coursenum}{ECE 786}
+\newcommand*{\coursename}{Advanced Computer Architecture: Data Parallel Processors}
+\newcommand*{\hwnum}{1}
+
+\rhead{\LARGE   \fontfamily{lmdh}\selectfont	HW \hwnum}
+
+\lfoot{\small \coursenum, \term, HW \hwnum}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Document Start %%%%%%%%%%%%%%%%%
+\begin{document}
+%All the questions are from Computer Architecture: A Quantitative Approach, 6th Ed., the textbook of ECE563.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Question 1
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{1}
+%1. C.8 (There is a typo in the question: Figure C.21 should be Figure C.22).
+
+[15] $<$C.5$>$ Construct a table like that shown in Figure C.22 to check for WAW stalls in the RISC V FP pipeline of Figure C.30. Do not consider FP divides.
+
+\begin{Answer}
+
+\end{Answer}
+
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Question 2
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section*{2}
+%2. C.9.a
+
+[20/22/22] $<$C.4, C.6$>$ In this exercise, we will look at how a common vector loop runs on statically and dynamically scheduled versions of the RISC V pipe- line. The loop is the so-called DAXPY loop (discussed extensively in Appendix G) and the central operation in Gaussian elimination. The loop implements the vector operation $Y=a*X+Y$ for a vector of length 100. Here is the MIPS code for the loop:
+
+
+\begin{verbatim}
+foo:    fld    f2, 0(x1)    ; load X(i)
+        fmul.d f4, f2, f0   ; multiply a*X(i)
+        fld    f6, 0(x2)    ; load Y(i)
+        fadd.d f6, f4, f6   ; add a*X(i) + Y(i)
+        fsd    0(x2), f6    ; store Y(i)
+        addi   x1, x1, 8    ; increment X index
+        addi   x2, x2, 8    ; increment Y index
+        sltiu  x3, x1, done ; test if done
+        bnez   x3, foo      ; loop if not done
+\end{verbatim}
+
+For parts (a) to (c), assume that integer operations issue and complete in 1 clock cycle (including loads) and that their results are fully bypassed. You will use the FP latencies (only) shown in Figure C.29, but assume that the FP unit is fully pipelined. For scoreboards below, assume that an instruction waiting for a result from another function unit can pass through read operands at the same time the result is written. Also assume that an instruction in WB completing will allow a currently active instruction that is waiting on the same functional unit to issue in the same clock cycle in which the first instruction completes WB.
+
+a. [20]$<$C.5$>$ For this problem, use the RISCV pipeline of Section C.5 with the pipeline latencies from Figure C.29, but a fully pipelined FP unit, so the initiation interval is 1. Draw a timing diagram, similar to Figure C.32, showing the timing of each instruction's execution. How many clock cycles does each loop iteration take, counting from when the first instruction enters the WB stage to when the last instruction enters the WB stage?
+
+\begin{Answer}
+
+\end{Answer}
+
+\newpage
+
+\end{document}
