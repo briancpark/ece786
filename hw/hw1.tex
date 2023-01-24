@@ -1,10 +1,6 @@
 \documentclass[11pt]{article}
 \usepackage{ece786}
 
-%%% For FAS
-\usepackage{tikz}
-\usetikzlibrary{automata, positioning, arrows}
-
 %%%%%%%%%%%%%%%%%%%% name/id
 \rfoot{\small Brian Park | 200190057}
 
@@ -27,24 +23,47 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Question 1
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section*{1}
+\section*{1. C.8}
 %1. C.8 (There is a typo in the question: Figure C.21 should be Figure C.22).
-
 [15] $<$C.5$>$ Construct a table like that shown in Figure C.22 to check for WAW stalls in the RISC V FP pipeline of Figure C.30. Do not consider FP divides.
 
-\begin{Answer}
+\begin{figure}[H]
+    \centerline{\includegraphics[width=5in]{figures/figurec22.png}}
+\end{figure}
 
-\end{Answer}
+\begin{figure}[H]
+	\centerline{\includegraphics[width=5in]{figures/figurec30.png}}
+\end{figure}
+
+\begin{table}[ht]
+\caption{New CPI for Benchmarks} % title of Table
+\centering % used for centering table
+\begin{tabular}{c c c} % centered columns (4 columns)
+\hline\hline %inserts double horizontal lines
+Opcode field of ID/EX & Opcode field of IF/ID & Matching operand fields \\ [0.5ex] % inserts table
+%heading
+\hline % inserts single horizontal line
+dhrystone & 1.121 \\
+median & 1.18 \\
+multiply & 1.16 \\
+qsort & 1.151 \\
+rsort & 1.028 \\
+towers & 1.08 \\
+vvadd & 1.118 \\
+[1ex] % [1ex] adds vertical space
+\hline %inserts single line
+\end{tabular}
+\label{table:nonlin} % is used to refer this table in the text
+\end{table}
 
 \newpage
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Question 2
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\section*{2}
+\section*{2. C.9.a}
 %2. C.9.a
 
-[20/22/22] $<$C.4, C.6$>$ In this exercise, we will look at how a common vector loop runs on statically and dynamically scheduled versions of the RISC V pipe- line. The loop is the so-called DAXPY loop (discussed extensively in Appendix G) and the central operation in Gaussian elimination. The loop implements the vector operation $Y=a*X+Y$ for a vector of length 100. Here is the MIPS code for the loop:
-
+[20/22/22] $<$C.4, C.6$>$ In this exercise, we will look at how a common vector loop runs on statically and dynamically scheduled versions of the RISC V pipeline. The loop is the so-called DAXPY loop (discussed extensively in Appendix G) and the central operation in Gaussian elimination. The loop implements the vector operation $Y=a*X+Y$ for a vector of length 100. Here is the MIPS code for the loop:
 
 \begin{verbatim}
 foo:    fld    f2, 0(x1)    ; load X(i)
@@ -62,9 +81,28 @@ For parts (a) to (c), assume that integer operations issue and complete in 1 clo
 
 a. [20]$<$C.5$>$ For this problem, use the RISCV pipeline of Section C.5 with the pipeline latencies from Figure C.29, but a fully pipelined FP unit, so the initiation interval is 1. Draw a timing diagram, similar to Figure C.32, showing the timing of each instruction's execution. How many clock cycles does each loop iteration take, counting from when the first instruction enters the WB stage to when the last instruction enters the WB stage?
 
-\begin{Answer}
-
-\end{Answer}
+\begin{table}[ht]
+\caption{Timing Diagram} % title of Table
+\centering % used for centering table
+\begin{tabular}{c c c} % centered columns (4 columns)
+\hline\hline %inserts double horizontal lines
+Instruction & 1 & 2 & 3 & 4 & 5 & 6\\ % inserts table
+%heading
+\hline % inserts single horizontal line
+\verb|fld    f2, 0(x1)    | & IF & ID & EX & MEM   & WB    &       &       & &  & &  & &  & &\\
+\verb|fmul.d f4, f2, f0   | &    & IF & ID & FMUL1 & FMUL2 & FMUL2 & FMUL3 & &  & &  & &  & &\\
+\verb|fld    f6, 0(x2)    | &    &    &    &       &       &       &       & &  & &  & &  & &\\
+\verb|fadd.d f6, f4, f6   | &    &    &    &       &       &       &       & &  & &  & &  & &\\
+\verb|fsd    0(x2), f6    | &    &    &    &       &       &       &       & &  & &  & &  & &\\
+\verb|addi   x1, x1, 8    | &    &    &    &       &       &       &       & &  & &  & &  & &\\
+\verb|addi   x2, x2, 8    | &    &    &    &       &       &       &       & &  & &  & &  & &\\
+\verb|sltiu  x3, x1, done | &    &    &    &       &       &       &       & &  & &  & &  & &\\
+\verb|bnez   x3, foo      | &    &    &    &       &       &       &       & &  & &  & &  & &\\
+[1ex] % [1ex] adds vertical space
+\hline %inserts single line
+\end{tabular}
+\label{table:nonlin} % is used to refer this table in the text
+\end{table}
 
 \newpage
 
