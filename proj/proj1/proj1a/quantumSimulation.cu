@@ -98,6 +98,13 @@ int main(int argc, char** argv) {
     // cout << qubit << endl;
 
     // Perform quantum simulation on qubit
+    for (size_t i = 0; i < 128; i++) {
+        if ((i & (1 << qubit)) == 0) {
+            output[i] = matrix[0] * vector[i] + matrix[1] * vector[i + (1 << qubit)];
+        } else {
+            output[i] = matrix[2] * vector[i - (1 << qubit)] + matrix[3] * vector[i];
+        }
+    }
 
     // Print the output vector
     for (int i = 0; i < 128; i++) {

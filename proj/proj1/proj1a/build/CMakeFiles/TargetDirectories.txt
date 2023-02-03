@@ -1,3 +1,0 @@
-/home/bcpark/ece786/proj/proj1/proj1a/build/CMakeFiles/quamsim.dir
-/home/bcpark/ece786/proj/proj1/proj1a/build/CMakeFiles/edit_cache.dir
-/home/bcpark/ece786/proj/proj1/proj1a/build/CMakeFiles/rebuild_cache.dir
