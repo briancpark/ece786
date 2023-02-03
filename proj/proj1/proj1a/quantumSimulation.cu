@@ -47,27 +47,35 @@ the execution time. Do not print anything other than the output vector.
 */
 
 #include <cuda_runtime.h>
+#include <fstream>
 #include <iostream>
 #include <stdio.h>
+#include <string>
 #include <vector>
 
 using namespace std;
 
-void read_matrix(FILE* fp, float* U) {
-    for (int i = 0; i < 4; i++) {
-        fscanf(fp, "%f", &U[i]);
-    }
-}
-
-void read_vector(FILE* fp, vector<float>& a) {
+void read_vector(ifstream input, vector<float>& a) {
     // continuously read each line of the file until we hit an empty line
-    float temp;
-    while (fscanf(fp, "%f", &temp) != EOF) {
-        a.push_back(temp);
-    }
+    // float temp;
+    // char* c = "\n";
+    // cout << fgetc(fp) << endl;
+    // while (fscanf(fp, "%f", &temp) != EOF) {
+    //     a.push_back(temp);
+    //     // if next line is newline, then break
+    //     if (fgetc(fp) == *c) {
+    //         break;
+    //     }
+    //     cout << "added to vector" << temp << endl;
+    // }
+    // cout << "DONE" << endl;
+    return;
 }
 
-void read_qubit(FILE* fp, size_t* qubit) { fscanf(fp, "%zu", qubit); }
+// void read_qubit(FILE* fp, size_t* qubit) {
+//     // fscanf(fp, "%zu", qubit);
+//     return;
+// }
 
 int main(int argc, char** argv) {
     // Parse the command line arguments
@@ -77,42 +85,51 @@ int main(int argc, char** argv) {
     }
 
     // Read the input file
-    FILE* fp = fopen(argv[1], "r");
-    if (fp == NULL) {
-        fprintf(stderr, "Failed to open file %s\n", argv[1]);
-        exit(EXIT_FAILURE);
-    }
+    ifstream input_file;
+    input_file.open(argv[1]);
 
     // Read the first matrix
     // TODO: change to GPU later
     // We know that the matrix is 2x2 guaranteed
     // But for vector, we need to read the file first
-    float* matrix = (float*)malloc(4 * sizeof(float));
+    float* U = (float*)malloc(4 * sizeof(float));
     vector<float> a;
-
     size_t qubit;
 
-    // for (int i = 0; i < 4; i++) {
-    //     cout << matrix1[i] << " ";
-    // }
-    read_matrix(fp, matrix);
-    read_vector(fp, a);
-    read_qubit(fp, &qubit);
+    for (int i = 0; i < 4; i++) {
+        input_file >> U[i];
+    }
 
+    // Read in the vector until we hit an empty line
+    // float temp;
+    string line;
+    std::getline(input_file, line);
+    std::getline(input_file, line);
+
+    while (std::getline(input_file, line) && !line.empty()) {
+        a.push_back(stof(line));
+    }
+
+    // Read in the qubit
+    input_file >> qubit;
+
+    // for (auto i : a) {
+    //     cout << i << endl;
+    // }
     // cout << qubit << endl;
     float* output = (float*)malloc(a.size() * sizeof(float));
 
     // Perform quantum simulation on qubit
     for (size_t i = 0; i < a.size(); i++) {
         if ((i & (1 << qubit)) == 0) {
-            output[i] = matrix[0] * a[i] + matrix[1] * a[i + (1 << qubit)];
+            output[i] = U[0] * a[i] + U[1] * a[i + (1 << qubit)];
         } else {
-            output[i] = matrix[2] * a[i - (1 << qubit)] + matrix[3] * a[i];
+            output[i] = U[2] * a[i - (1 << qubit)] + U[3] * a[i];
         }
     }
 
     // Print the output vector
-    for (int i = 0; i < 128; i++) {
+    for (int i = 0; i < a.size(); i++) {
         printf("%.3f\n", output[i]);
     }
     return 0;
