@@ -18,9 +18,9 @@ fi
 
 for file in input/input*.txt
 do
+    echo "Testing $file"
     ./quamsim $file >> $file.out
-    # replace name input with output
-    output_file=$(echo $file | sed 's/input/output/')
+    output_file=${file//input/output}
     diff $file.out $output_file
     rm $file.out
 done

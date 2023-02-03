@@ -46,22 +46,24 @@ the execution time. Do not print anything other than the output vector.
 
 */
 
+#include <cuda_runtime.h>
 #include <iostream>
 #include <stdio.h>
-// For the CUDA runtime routines (prefixed with "cuda_")
-#include <cuda_runtime.h>
+#include <vector>
 
 using namespace std;
 
-void read_matrix(FILE* fp, float* matrix) {
+void read_matrix(FILE* fp, float* U) {
     for (int i = 0; i < 4; i++) {
-        fscanf(fp, "%f", &matrix[i]);
+        fscanf(fp, "%f", &U[i]);
     }
 }
 
-void read_vector(FILE* fp, float* vector) {
-    for (int i = 0; i < 128; i++) {
-        fscanf(fp, "%f", &vector[i]);
+void read_vector(FILE* fp, vector<float>& a) {
+    // continuously read each line of the file until we hit an empty line
+    float temp;
+    while (fscanf(fp, "%f", &temp) != EOF) {
+        a.push_back(temp);
     }
 }
 
@@ -83,26 +85,29 @@ int main(int argc, char** argv) {
 
     // Read the first matrix
     // TODO: change to GPU later
+    // We know that the matrix is 2x2 guaranteed
+    // But for vector, we need to read the file first
     float* matrix = (float*)malloc(4 * sizeof(float));
-    float* vector = (float*)malloc(128 * sizeof(float));
-    float* output = (float*)malloc(128 * sizeof(float));
+    vector<float> a;
+
     size_t qubit;
 
     // for (int i = 0; i < 4; i++) {
     //     cout << matrix1[i] << " ";
     // }
     read_matrix(fp, matrix);
-    read_vector(fp, vector);
+    read_vector(fp, a);
     read_qubit(fp, &qubit);
 
     // cout << qubit << endl;
+    float* output = (float*)malloc(a.size() * sizeof(float));
 
     // Perform quantum simulation on qubit
-    for (size_t i = 0; i < 128; i++) {
+    for (size_t i = 0; i < a.size(); i++) {
         if ((i & (1 << qubit)) == 0) {
-            output[i] = matrix[0] * vector[i] + matrix[1] * vector[i + (1 << qubit)];
+            output[i] = matrix[0] * a[i] + matrix[1] * a[i + (1 << qubit)];
         } else {
-            output[i] = matrix[2] * vector[i - (1 << qubit)] + matrix[3] * vector[i];
+            output[i] = matrix[2] * a[i - (1 << qubit)] + matrix[3] * a[i];
         }
     }
 
