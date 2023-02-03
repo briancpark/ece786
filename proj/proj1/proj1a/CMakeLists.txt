@@ -11,4 +11,5 @@ target_compile_features(quamsim PRIVATE cxx_std_11)
 set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS}") # -arch=sm_60
 
 file(COPY input DESTINATION .)
+file(COPY output DESTINATION .)
 file(COPY test.sh DESTINATION .)
