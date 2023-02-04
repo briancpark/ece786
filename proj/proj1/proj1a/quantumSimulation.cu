@@ -55,6 +55,17 @@ the execution time. Do not print anything other than the output vector.
 
 using namespace std;
 
+void quantum_simulation(float* U, float* a, float* output, size_t qubit, size_t N) {
+    // Perform quantum simulation on qubit
+    for (size_t i = 0; i < N; i++) {
+        if ((i & (1 << qubit)) == 0) {
+            output[i] = U[0] * a[i] + U[1] * a[i + (1 << qubit)];
+        } else {
+            output[i] = U[2] * a[i - (1 << qubit)] + U[3] * a[i];
+        }
+    }
+}
+
 int main(int argc, char** argv) {
     // Parse the command line arguments
     if (argc != 2) {
@@ -90,13 +101,7 @@ int main(int argc, char** argv) {
     float* output = (float*)malloc(a.size() * sizeof(float));
 
     // Perform quantum simulation on qubit
-    for (size_t i = 0; i < a.size(); i++) {
-        if ((i & (1 << qubit)) == 0) {
-            output[i] = U[0] * a[i] + U[1] * a[i + (1 << qubit)];
-        } else {
-            output[i] = U[2] * a[i - (1 << qubit)] + U[3] * a[i];
-        }
-    }
+    quantum_simulation(U, a.data(), output, qubit, a.size());
 
     // Print the output vector
     for (int i = 0; i < a.size(); i++) {
