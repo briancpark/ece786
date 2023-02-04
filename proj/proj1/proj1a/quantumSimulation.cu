@@ -55,7 +55,9 @@ the execution time. Do not print anything other than the output vector.
 
 using namespace std;
 
-void quantum_simulation(float* U, float* a, float* output, size_t qubit, size_t N) {
+static size_t FLOPs = 0;
+
+void quantum_simulation_cpu(float* U, float* a, float* output, size_t qubit, size_t N) {
     // Perform quantum simulation on qubit
     for (size_t i = 0; i < N; i++) {
         if ((i & (1 << qubit)) == 0) {
@@ -64,6 +66,34 @@ void quantum_simulation(float* U, float* a, float* output, size_t qubit, size_t 
             output[i] = U[2] * a[i - (1 << qubit)] + U[3] * a[i];
         }
     }
+}
+
+void quantum_simulation_flops(float* U, float* a, float* output, size_t qubit, size_t N) {
+    // Perform quantum simulation on qubit
+    for (size_t i = 0; i < N; i++) {
+        if ((i & (1 << qubit)) == 0) {
+            output[i] = U[0] * a[i] + U[1] * a[i + (1 << qubit)];
+            FLOPs += 3;
+        } else {
+            output[i] = U[2] * a[i - (1 << qubit)] + U[3] * a[i];
+            FLOPs += 3;
+        }
+    }
+}
+
+__global__ void quantum_simulation_gpu(float* U, float* a, float* output, int qubit, int N) {
+    int tid = blockDim.x * blockIdx.x + threadIdx.x;
+
+    if (tid < N) {
+        return;
+    }
+
+    if (tid & (1 << qubit))
+        output[tid] = U[0] * a[tid] + U[1] * a[tid + (1 << qubit)];
+    else
+        output[tid] = U[2] * a[tid - (1 << qubit)] + U[3] * a[tid];
+
+    __syncthreads();
 }
 
 int main(int argc, char** argv) {
@@ -101,7 +131,26 @@ int main(int argc, char** argv) {
     float* output = (float*)malloc(a.size() * sizeof(float));
 
     // Perform quantum simulation on qubit
-    quantum_simulation(U, a.data(), output, qubit, a.size());
+    // quantum_simulation_cpu(U, a.data(), output, qubit, a.size());
+    quantum_simulation_flops(U, a.data(), output, qubit, a.size());
+    // cout << "FLOPs: " << FLOPs << endl;
+
+    // Copy memory to GPU
+    float* U_gpu;
+    float* a_gpu;
+    float* output_gpu;
+    cudaMalloc(&U_gpu, 4 * sizeof(float));
+    cudaMalloc(&a_gpu, a.size() * sizeof(float));
+    cudaMalloc(&output_gpu, a.size() * sizeof(float));
+    cudaMemcpy(U_gpu, U, 4 * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(a_gpu, a.data(), a.size() * sizeof(float), cudaMemcpyHostToDevice);
+
+    // quantum_simulation_gpu(U, a.data(), output, qubit, a.size());
+    int threadsPerBlock = 256;
+    int blocksPerGrid = (a.size() + threadsPerBlock - 1) / threadsPerBlock;
+    // printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threadsPerBlock);
+    quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_gpu, a_gpu, output_gpu, qubit,
+                                                               a.size());
 
     // Print the output vector
     for (int i = 0; i < a.size(); i++) {
