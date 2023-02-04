@@ -1,0 +1,26 @@
+name: proj1
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: Jimver/cuda-toolkit@v0.2.8
+      id: cuda-toolkit
+      with:
+        cuda: '11.7.0'
+    - name: compile proj1a
+      run: |
+        cd proj/proj1/proj1a
+        mkdir build
+        cd build
+        cmake ..
+        make
