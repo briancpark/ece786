@@ -1,4 +1,4 @@
-name: proj1
+name: Proj1A
 
 on:
   push:
@@ -17,10 +17,14 @@ jobs:
       id: cuda-toolkit
       with:
         cuda: '11.7.0'
-    - name: compile proj1a
+    - name: Compile Proj1A
       run: |
         cd proj/proj1/proj1a
         mkdir build
         cd build
         cmake ..
         make
+    - name: Run Proj1A
+      run: |
+        cd proj/proj1/proj1a/build
+        ./test.sh
