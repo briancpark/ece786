@@ -101,10 +101,28 @@ int main(int argc, char** argv) {
     int threadsPerBlock = 256;
     int blocksPerGrid = (a.size() + threadsPerBlock - 1) / threadsPerBlock;
     // printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threadsPerBlock);
+
+#ifdef BENCHMARK
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+    cudaEventRecord(start);
+#endif
     quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_gpu, a_gpu, output_gpu, qubit,
                                                                a.size());
 
+#ifdef BENCHMARK
+    cudaEventRecord(stop);
+
     cudaDeviceSynchronize();
+
+    cudaEventSynchronize(stop);
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+    cout << "Time taken: " << milliseconds << " ms" << endl;
+    cudaDeviceSynchronize();
+#endif
     cudaMemcpy(output, output_gpu, a.size() * sizeof(float), cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
     // Print the output vector
