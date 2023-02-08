@@ -8,7 +8,7 @@ fi
 for file in input/input*.txt
 do
     echo "Testing $file"
-    ./quamsimV2 $file >> $file.out
+    ./quamsimV1 $file >> $file.out
     output_file=${file//input/output}
     diff $file.out $output_file
     rm $file.out
