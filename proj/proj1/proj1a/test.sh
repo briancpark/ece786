@@ -1,14 +1,14 @@
 #!/bin/bash
 
-if [ ! -f quamsim ]; then
-    echo "Executable quamsim does not exist"
+if [ ! -f quamsimV1 ]; then
+    echo "Executable quamsimV1 does not exist"
     exit 1
 fi
 
 for file in input/input*.txt
 do
     echo "Testing $file"
-    ./quamsim $file >> $file.out
+    ./quamsimV2 $file >> $file.out
     output_file=${file//input/output}
     diff $file.out $output_file
     rm $file.out
