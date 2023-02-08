@@ -38,15 +38,13 @@ __global__ void quantum_simulation_gpu(float* U, float* a, float* output, int qu
 
     size_t qid = 1 << qubit;
 
-    if (tid < N) {
+    if (tid > N)
         return;
-    }
 
     if (tid & qid)
-        output[tid] = U[0] * a[tid] + U[1] * a[tid + qid];
-    else
         output[tid] = U[2] * a[tid - qid] + U[3] * a[tid];
-
+    else
+        output[tid] = U[0] * a[tid] + U[1] * a[tid + qid];
     __syncthreads();
 }
 
@@ -72,10 +70,10 @@ int main(int argc, char** argv) {
 
     // Read in the vector until we hit an empty line
     string line;
-    std::getline(input_file, line);
-    std::getline(input_file, line);
+    getline(input_file, line);
+    getline(input_file, line);
 
-    while (std::getline(input_file, line) && !line.empty()) {
+    while (getline(input_file, line) && !line.empty()) {
         a.push_back(stof(line));
     }
 
@@ -86,7 +84,7 @@ int main(int argc, char** argv) {
 
     // Perform quantum simulation on qubit
     // quantum_simulation_cpu(U, a.data(), output, qubit, a.size());
-    quantum_simulation_flops(U, a.data(), output, qubit, a.size());
+    // quantum_simulation_flops(U, a.data(), output, qubit, a.size());
     // cout << "FLOPs: " << FLOPs << endl;
 
     // Copy memory to GPU
@@ -106,6 +104,9 @@ int main(int argc, char** argv) {
     quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_gpu, a_gpu, output_gpu, qubit,
                                                                a.size());
 
+    cudaDeviceSynchronize();
+    cudaMemcpy(output, output_gpu, a.size() * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
     // Print the output vector
     for (int i = 0; i < a.size(); i++) {
         printf("%.3f\n", output[i]);
