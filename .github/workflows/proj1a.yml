@@ -20,11 +20,9 @@ jobs:
     - name: Compile Proj1A
       run: |
         cd proj/proj1/proj1a
-        mkdir build
-        cd build
-        cmake ..
         make
     - name: Run Proj1A
       run: |
-        cd proj/proj1/proj1a/build
+        cd proj/proj1/proj1a
         ./test.sh
+        ./benchmark.sh
