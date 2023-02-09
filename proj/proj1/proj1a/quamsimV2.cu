@@ -7,12 +7,41 @@
 #include <vector>
 
 using namespace std;
-using namespace std::chrono;
+
+#ifdef BENCHMARK
+static size_t FLOPs = 0;
+#endif
+
+void quantum_simulation_cpu(float* U, float* a, float* output, size_t qubit, size_t N) {
+    // Perform quantum simulation on qubit
+    for (size_t i = 0; i < N; i++) {
+        if ((i & (1 << qubit)) == 0) {
+            output[i] = U[0] * a[i] + U[1] * a[i + (1 << qubit)];
+        } else {
+            output[i] = U[2] * a[i - (1 << qubit)] + U[3] * a[i];
+        }
+    }
+}
+
+#ifdef BENCHMARK
+void quantum_simulation_flops(float* U, float* a, float* output, size_t qubit, size_t N) {
+    // Perform quantum simulation on qubit
+    for (size_t i = 0; i < N; i++) {
+        if ((i & (1 << qubit)) == 0) {
+            output[i] = U[0] * a[i] + U[1] * a[i + (1 << qubit)];
+            FLOPs += 3;
+        } else {
+            output[i] = U[2] * a[i - (1 << qubit)] + U[3] * a[i];
+            FLOPs += 3;
+        }
+    }
+}
+#endif
 
 __global__ void quantum_simulation_gpu(float* U, float* a, float* output, int qubit, int N) {
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
 
-    size_t qid = 1 << qubit;
+    register size_t qid = 1 << qubit;
 
     if (tid > N)
         return;
@@ -65,34 +94,36 @@ int main(int argc, char** argv) {
 
     cudaMallocManaged(&output, a.size() * sizeof(float));
 
+#ifdef BENCHMARK
+    quantum_simulation_flops(U, a.data(), output, qubit, a.size());
+    cout << "FLOPs: " << FLOPs << endl;
+    fill(output, output + a.size(), 0);
+#endif
+
     cudaDeviceSynchronize();
     int threadsPerBlock = 256;
     int blocksPerGrid = (a.size() + threadsPerBlock - 1) / threadsPerBlock;
 #ifdef BENCHMARK
-
     cudaEvent_t start, stop;
     float milliseconds = 0;
+    double average = 0;
     for (int i = 0; i < 100; i++) {
         cudaEventCreate(&start);
         cudaEventCreate(&stop);
 
         cudaEventRecord(start);
-        auto tik = high_resolution_clock::now();
 #endif
         quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U, input, output, qubit,
                                                                    a.size());
 #ifdef BENCHMARK
-
         cudaEventRecord(stop);
-
         cudaEventSynchronize(stop);
-        auto tok = high_resolution_clock::now();
-        auto duration = duration_cast<microseconds>(tok - tik);
-        cout << "Time taken: " << duration.count() << " us" << endl;
 
         cudaEventElapsedTime(&milliseconds, start, stop);
-        cout << "Time taken: " << milliseconds << " ms" << endl;
+        average += milliseconds;
     }
+    cout << "Time taken on average: " << average / 100 << " ms" << endl;
+    cout << "GFLOPs: " << FLOPs / (average / 100) / 1000 << endl;
 #endif
 
     cudaDeviceSynchronize();

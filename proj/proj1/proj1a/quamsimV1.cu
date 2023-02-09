@@ -7,7 +7,9 @@
 
 using namespace std;
 
+#ifdef BENCHMARK
 static size_t FLOPs = 0;
+#endif
 
 void quantum_simulation_cpu(float* U, float* a, float* output, size_t qubit, size_t N) {
     // Perform quantum simulation on qubit
@@ -20,6 +22,7 @@ void quantum_simulation_cpu(float* U, float* a, float* output, size_t qubit, siz
     }
 }
 
+#ifdef BENCHMARK
 void quantum_simulation_flops(float* U, float* a, float* output, size_t qubit, size_t N) {
     // Perform quantum simulation on qubit
     for (size_t i = 0; i < N; i++) {
@@ -32,11 +35,12 @@ void quantum_simulation_flops(float* U, float* a, float* output, size_t qubit, s
         }
     }
 }
+#endif
 
 __global__ void quantum_simulation_gpu(float* U, float* a, float* output, int qubit, int N) {
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
 
-    size_t qid = 1 << qubit;
+    register size_t qid = 1 << qubit;
 
     if (tid > N)
         return;
@@ -82,11 +86,12 @@ int main(int argc, char** argv) {
 
     float* output = (float*)malloc(a.size() * sizeof(float));
 
-    // Perform quantum simulation on qubit
-    // quantum_simulation_cpu(U, a.data(), output, qubit, a.size());
-    // quantum_simulation_flops(U, a.data(), output, qubit, a.size());
-    // cout << "FLOPs: " << FLOPs << endl;
-
+// Perform quantum simulation on qubit
+// quantum_simulation_cpu(U, a.data(), output, qubit, a.size());
+#ifdef BENCHMARK
+    quantum_simulation_flops(U, a.data(), output, qubit, a.size());
+    cout << "FLOPs: " << FLOPs << endl;
+#endif
     // Copy memory to GPU
     float* U_gpu;
     float* a_gpu;
@@ -105,25 +110,25 @@ int main(int argc, char** argv) {
 #ifdef BENCHMARK
     cudaEvent_t start, stop;
     float milliseconds = 0;
+    double average = 0;
     for (int i = 0; i < 100; i++) {
         cudaEventCreate(&start);
         cudaEventCreate(&stop);
-
         cudaEventRecord(start);
-
 #endif
         quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_gpu, a_gpu, output_gpu, qubit,
                                                                    a.size());
-
 #ifdef BENCHMARK
         cudaEventRecord(stop);
-
         cudaEventSynchronize(stop);
 
         cudaEventElapsedTime(&milliseconds, start, stop);
-        cout << "Time taken: " << milliseconds << " ms" << endl;
+        average += milliseconds;
     }
+    cout << "Time taken on average: " << average / 100 << " ms" << endl;
+    cout << "GFLOPs: " << FLOPs / (average / 100) / 1000 << endl;
 #endif
+
     cudaMemcpy(output, output_gpu, a.size() * sizeof(float), cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
     // Print the output vector
