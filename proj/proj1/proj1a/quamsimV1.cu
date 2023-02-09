@@ -104,24 +104,25 @@ int main(int argc, char** argv) {
 
 #ifdef BENCHMARK
     cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
+    float milliseconds = 0;
+    for (int i = 0; i < 100; i++) {
+        cudaEventCreate(&start);
+        cudaEventCreate(&stop);
 
-    cudaEventRecord(start);
+        cudaEventRecord(start);
+
 #endif
-    quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_gpu, a_gpu, output_gpu, qubit,
-                                                               a.size());
+        quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_gpu, a_gpu, output_gpu, qubit,
+                                                                   a.size());
 
 #ifdef BENCHMARK
-    cudaEventRecord(stop);
+        cudaEventRecord(stop);
 
-    cudaDeviceSynchronize();
+        cudaEventSynchronize(stop);
 
-    cudaEventSynchronize(stop);
-    float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    cout << "Time taken: " << milliseconds << " ms" << endl;
-    cudaDeviceSynchronize();
+        cudaEventElapsedTime(&milliseconds, start, stop);
+        cout << "Time taken: " << milliseconds << " ms" << endl;
+    }
 #endif
     cudaMemcpy(output, output_gpu, a.size() * sizeof(float), cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();

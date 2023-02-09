@@ -1,3 +1,4 @@
+#include <chrono>
 #include <cuda_runtime.h>
 #include <fstream>
 #include <iostream>
@@ -6,6 +7,7 @@
 #include <vector>
 
 using namespace std;
+using namespace std::chrono;
 
 __global__ void quantum_simulation_gpu(float* U, float* a, float* output, int qubit, int N) {
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
@@ -67,20 +69,30 @@ int main(int argc, char** argv) {
     int threadsPerBlock = 256;
     int blocksPerGrid = (a.size() + threadsPerBlock - 1) / threadsPerBlock;
 #ifdef BENCHMARK
+
     cudaEvent_t start, stop;
-    cudaEventCreate(&start);
-    cudaEventCreate(&stop);
-
-    cudaEventRecord(start);
-#endif
-    quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U, input, output, qubit, a.size());
-#ifdef BENCHMARK
-    cudaEventRecord(stop);
-
-    cudaEventSynchronize(stop);
     float milliseconds = 0;
-    cudaEventElapsedTime(&milliseconds, start, stop);
-    cout << "Time taken: " << milliseconds << " ms" << endl;
+    for (int i = 0; i < 100; i++) {
+        cudaEventCreate(&start);
+        cudaEventCreate(&stop);
+
+        cudaEventRecord(start);
+        auto tik = high_resolution_clock::now();
+#endif
+        quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U, input, output, qubit,
+                                                                   a.size());
+#ifdef BENCHMARK
+
+        cudaEventRecord(stop);
+
+        cudaEventSynchronize(stop);
+        auto tok = high_resolution_clock::now();
+        auto duration = duration_cast<microseconds>(tok - tik);
+        cout << "Time taken: " << duration.count() << " us" << endl;
+
+        cudaEventElapsedTime(&milliseconds, start, stop);
+        cout << "Time taken: " << milliseconds << " ms" << endl;
+    }
 #endif
 
     cudaDeviceSynchronize();
