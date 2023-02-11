@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
 #endif
 
     cudaDeviceSynchronize();
-    int threadsPerBlock = 128;
+    int threadsPerBlock = 256;
     int blocksPerGrid = (a.size() + threadsPerBlock - 1) / threadsPerBlock;
 #ifdef BENCHMARK
     cudaEvent_t start, stop;

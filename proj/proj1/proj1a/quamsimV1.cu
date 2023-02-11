@@ -37,7 +37,8 @@ void quantum_simulation_flops(float* U, float* a, float* output, size_t qubit, s
 }
 #endif
 
-__global__ void quantum_simulation_gpu(float* U, float* a, float* output, int qubit, int N) {
+__global__ void quantum_simulation_gpu(const float* U, const float* a, float* output, int qubit,
+                                       int N) {
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
 
     register size_t qid = 1 << qubit;
@@ -103,7 +104,7 @@ int main(int argc, char** argv) {
     cudaMemcpy(a_gpu, a.data(), a.size() * sizeof(float), cudaMemcpyHostToDevice);
 
     // quantum_simulation_gpu(U, a.data(), output, qubit, a.size());
-    int threadsPerBlock = 128;
+    int threadsPerBlock = 256;
     int blocksPerGrid = (a.size() + threadsPerBlock - 1) / threadsPerBlock;
     // printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threadsPerBlock);
 
