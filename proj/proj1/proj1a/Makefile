@@ -1,6 +1,7 @@
 # Location of the CUDA Toolkit
 NVCC := /usr/local/cuda/bin/nvcc
-CCFLAGS := -O3
+EXTRA_NVCCFLAGS := --cudart=shared -std=c++11
+CCFLAGS := -O3 
 
 all : build quamsimV1_benchmark quamsimV2_benchmark
 
