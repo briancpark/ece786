@@ -103,7 +103,7 @@ int main(int argc, char** argv) {
     cudaMemcpy(a_gpu, a.data(), a.size() * sizeof(float), cudaMemcpyHostToDevice);
 
     // quantum_simulation_gpu(U, a.data(), output, qubit, a.size());
-    int threadsPerBlock = 256;
+    int threadsPerBlock = 128;
     int blocksPerGrid = (a.size() + threadsPerBlock - 1) / threadsPerBlock;
     // printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid, threadsPerBlock);
 
