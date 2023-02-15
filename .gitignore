@@ -5,13 +5,13 @@
 *.cubin
 *.fatbin
 
-*.DS_Store
-
 # LaTeX
 *.log
 *.aux
 *.out
 *.synctex.gz
+
+.DS_Store
 
 build
 *
