@@ -1,6 +1,5 @@
 # Location of the CUDA Toolkit
 NVCC := /usr/local/cuda/bin/nvcc
-CCFLAGS := -O2
 EXTRA_NVCCFLAGS := --cudart=shared
 CCFLAGS := -O3 -std=c++11
 
