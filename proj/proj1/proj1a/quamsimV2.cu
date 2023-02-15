@@ -8,10 +8,6 @@
 
 using namespace std;
 
-#ifdef BENCHMARK
-static size_t FLOPs = 0;
-#endif
-
 void quantum_simulation_cpu(float* U, float* a, float* output, size_t qubit, size_t N) {
     // Perform quantum simulation on qubit
     for (size_t i = 0; i < N; i++) {
@@ -22,21 +18,6 @@ void quantum_simulation_cpu(float* U, float* a, float* output, size_t qubit, siz
         }
     }
 }
-
-#ifdef BENCHMARK
-void quantum_simulation_flops(float* U, float* a, float* output, size_t qubit, size_t N) {
-    // Perform quantum simulation on qubit
-    for (size_t i = 0; i < N; i++) {
-        if ((i & (1 << qubit)) == 0) {
-            output[i] = U[0] * a[i] + U[1] * a[i + (1 << qubit)];
-            FLOPs += 3;
-        } else {
-            output[i] = U[2] * a[i - (1 << qubit)] + U[3] * a[i];
-            FLOPs += 3;
-        }
-    }
-}
-#endif
 
 __global__ void quantum_simulation_gpu(float* U, float* a, float* output, int qubit, int N) {
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
@@ -50,7 +31,6 @@ __global__ void quantum_simulation_gpu(float* U, float* a, float* output, int qu
         output[tid] = U[2] * a[tid - qid] + U[3] * a[tid];
     else
         output[tid] = U[0] * a[tid] + U[1] * a[tid + qid];
-    __syncthreads();
 }
 
 int main(int argc, char** argv) {
@@ -77,10 +57,10 @@ int main(int argc, char** argv) {
     }
 
     // Read in the vector until we hit an empty line
-    std::getline(input_file, line);
-    std::getline(input_file, line);
+    getline(input_file, line);
+    getline(input_file, line);
 
-    while (std::getline(input_file, line) && !line.empty()) {
+    while (getline(input_file, line) && !line.empty()) {
         a.push_back(stof(line));
     }
 
@@ -95,9 +75,8 @@ int main(int argc, char** argv) {
     cudaMallocManaged(&output, a.size() * sizeof(float));
 
 #ifdef BENCHMARK
-    quantum_simulation_flops(U, a.data(), output, qubit, a.size());
+    size_t FLOPs = 3 * a.size();
     cout << "FLOPs: " << FLOPs << endl;
-    fill(output, output + a.size(), 0);
 #endif
 
     cudaDeviceSynchronize();

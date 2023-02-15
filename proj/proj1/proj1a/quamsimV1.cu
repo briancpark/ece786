@@ -7,10 +7,6 @@
 
 using namespace std;
 
-#ifdef BENCHMARK
-static size_t FLOPs = 0;
-#endif
-
 void quantum_simulation_cpu(float* U, float* a, float* output, size_t qubit, size_t N) {
     // Perform quantum simulation on qubit
     for (size_t i = 0; i < N; i++) {
@@ -21,22 +17,6 @@ void quantum_simulation_cpu(float* U, float* a, float* output, size_t qubit, siz
         }
     }
 }
-
-#ifdef BENCHMARK
-void quantum_simulation_flops(float* U, float* a, float* output, size_t qubit, size_t N) {
-    // Perform quantum simulation on qubit
-    for (size_t i = 0; i < N; i++) {
-        if ((i & (1 << qubit)) == 0) {
-            output[i] = U[0] * a[i] + U[1] * a[i + (1 << qubit)];
-            FLOPs += 3;
-        } else {
-            output[i] = U[2] * a[i - (1 << qubit)] + U[3] * a[i];
-            FLOPs += 3;
-        }
-    }
-}
-#endif
-
 __global__ void quantum_simulation_gpu(const float* U, const float* a, float* output, int qubit,
                                        int N) {
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
@@ -50,7 +30,6 @@ __global__ void quantum_simulation_gpu(const float* U, const float* a, float* ou
         output[tid] = U[2] * a[tid - qid] + U[3] * a[tid];
     else
         output[tid] = U[0] * a[tid] + U[1] * a[tid + qid];
-    __syncthreads();
 }
 
 int main(int argc, char** argv) {
@@ -90,7 +69,7 @@ int main(int argc, char** argv) {
 // Perform quantum simulation on qubit
 // quantum_simulation_cpu(U, a.data(), output, qubit, a.size());
 #ifdef BENCHMARK
-    quantum_simulation_flops(U, a.data(), output, qubit, a.size());
+    size_t FLOPs = 3 * a.size();
     cout << "FLOPs: " << FLOPs << endl;
 #endif
     // Copy memory to GPU
