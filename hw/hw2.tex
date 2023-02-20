@@ -1,0 +1,636 @@
+\documentclass[11pt]{article}
+\usepackage{ece786}
+
+%%%%%%%%%%%%%%%%%%%% name/id
+\rfoot{\small Brian Park | 200190057}
+
+
+%%%%%%%%%%%%%%%%%%%% Course/HW info
+\newcommand*{\instr}{Huiyang Zhou}
+\newcommand*{\term}{Spring 2023}
+\newcommand*{\coursenum}{ECE 786}
+\newcommand*{\coursename}{Advanced Computer Architecture: Data Parallel Processors}
+\newcommand*{\hwnum}{2}
+
+\rhead{\LARGE   \fontfamily{lmdh}\selectfont	HW \hwnum}
+
+\lfoot{\small \coursenum, \term, HW \hwnum}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Document Start %%%%%%%%%%%%%%%%%
+\begin{document}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Question 1
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{}
+
+In this exercise, we analyze how the instructions of a Vector-Add kernel function run on SIMT pipelines. The following is the instruction sequence in the PTX format:
+
+\begin{verbatim}
+ld.global.f32   %f1, [%r14+0]    // f1 = mem[r14+0]
+ld.global.f32   %f2, [%r16+0]    // f2 = mem[r16+0]
+add.f32         %f3, %f1, %f2    // f3 = f1 + f2
+st.global.f32   [%r18+0], %f3    // mem[r18+0] = f3 
+\end{verbatim}
+
+Using the pipeline timing diagram to show how these instructions are executed on one SM. The following assumptions are made: 
+
+\begin{enumerate}
+	\item The SM has 16 SPs
+	\item The load/store latency is 5 cycles (i.e., 5 MEM stages) with AGEN included in the 5 stages, and the add latency is 3 cycles (i.e., 3 EX stages)
+	\item The SM can run 6 warps concurrently and the warp scheduling policy is round robin
+	\item There is no scoreboard to support more than 1 instruction from the same warp to be issued to the pipeline. 
+	\item IF and ID are 2 cycles each
+	\item WB can handle 16 threads at a time.
+\end{enumerate}
+
+How many cycles does it take to execute all the 6 warps, counting from when the first instruction enters the IF stage to when the last instruction enters the WB stage?
+
+\begin{Answer}
+There are some additional assumptions that we must consider that the problem statement didn't mention before:
+\begin{itemize}
+    \item The pipeline is diversified, meaning that ALU will follow a pipeline of IF, ID, RR, EX[123], WB and load/store will follow a pipeline of IF, ID, RR, MEM[12345], WB
+    \item Also assume that the ALU and MEM stages are fully pipelined. 
+\end{itemize}
+
+It takes 58 cycles to execute all all warps. The work is shown below. Attached to this homework, you will find a separate image for better readability and viewing for the work shown.
+
+% Instr                                      | 1  | 2  | 3  | 4  | 5  | 6    | 7    | 8    | 9    | 10   | 11   | 12   | 13   | 14   | 15   | 16   | 17   | 18   | 19   | 20   | 21   | 22   | 23   | 24   | 25   | 26   | 27   | 28   | 29   | 30   | 31   | 32   | 33   | 34   | 35   | 36   | 37   | 38   | 39   | 40   | 41   | 42   | 43   | 44   | 45   | 46   | 47   | 48   | 49   | 50   | 51   | 52   | 53   | 54   | 55   | 56   | 57   | 58   |
+% w0  (t0-t15): ld.global.f32  %f1, [%r14+0] | IF |    | ID |    | RR | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | 
+% w0 (t16-t32): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | 
+% w1  (t0-t15): ld.global.f32  %f1, [%r14+0] |    |    | IF |    | ID |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | 
+% w1 (t16-t32): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | 
+% w2  (t0-t15): ld.global.f32  %f1, [%r14+0] |    |    |    |    | IF |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | 
+% w2 (t16-t32): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w3  (t0-t15): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      | IF   |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w3 (t16-t32): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      |      |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w4  (t0-t15): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      |      |      | IF   |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w4 (t16-t32): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      |      |      |      |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w5  (t0-t15): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      |      |      |      |      | IF   |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w5 (t16-t32): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+
+% w0  (t0-t15): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w0 (t16-t32): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w1  (t0-t15): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w1 (t16-t32): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w2  (t0-t15): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w2 (t16-t32): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w3  (t0-t15): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w3 (t16-t32): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w4  (t0-t15): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w4 (t16-t32): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w5  (t0-t15): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w5 (t16-t32): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+
+% w0  (t0-t15): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | EX1  | EX2  | EX3  |      |      | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w0 (t16-t32): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | EX1  | EX2  | EX3  |      |      | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w1  (t0-t15): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | EX1  | EX2  | EX3  |      |      | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | 
+% w1 (t16-t32): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | EX1  | EX2  | EX3  |      |      | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | 
+% w2  (t0-t15): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | EX1  | EX2  | EX3  |      |      | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | 
+% w2 (t16-t32): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | EX1  | EX2  | EX3  |      |      | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | 
+% w3  (t0-t15): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | EX1  | EX2  | EX3  |      |      | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | 
+% w3 (t16-t32): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | EX1  | EX2  | EX3  |      |      | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | 
+% w4  (t0-t15): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | EX1  | EX2  | EX3  |      |      | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | 
+% w4 (t16-t32): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | EX1  | EX2  | EX3  |      |      | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w5  (t0-t15): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | EX1  | EX2  | EX3  |      |      | WB   |      |      |      |      |      |      |      |      |      |      |      |      |      |
+% w5 (t16-t32): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | EX1  | EX2  | EX3  |      |      | WB   |      |      |      |      |      |      |      |      |      |      |      |      |
+
+% w0  (t0-t15): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |      |
+% w0 (t16-t32): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |      |
+% w1  (t0-t15): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |      |
+% w1 (t16-t32): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |      |
+% w2  (t0-t15): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |      |
+% w2 (t16-t32): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |      |
+% w3  (t0-t15): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |      |
+% w3 (t16-t32): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |      |
+% w4  (t0-t15): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |      |
+% w4 (t16-t32): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |      |
+% w5  (t0-t15): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | IF   |      | ID   |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |
+% w5 (t16-t32): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |
+\begin{verbatim}
+Instr                                      | 1  | 2  | 3  | 4  | 5  | 6    | 7    |
+w0  (t0-t15): ld.global.f32  %f1, [%r14+0] | IF |    | ID |    | RR | MEM1 | MEM2 |
+w0 (t16-t32): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    | RR   | MEM1 |
+w1  (t0-t15): ld.global.f32  %f1, [%r14+0] |    |    | IF |    | ID |      | RR   |
+w1 (t16-t32): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      |      |
+w2  (t0-t15): ld.global.f32  %f1, [%r14+0] |    |    |    |    | IF |      | ID   |
+w2 (t16-t32): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      |      |
+w3  (t0-t15): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      | IF   |
+w3 (t16-t32): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      |      |
+w4  (t0-t15): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      |      |
+w4 (t16-t32): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      |      |
+w5  (t0-t15): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      |      |
+w5 (t16-t32): ld.global.f32  %f1, [%r14+0] |    |    |    |    |    |      |      |
+w0  (t0-t15): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |
+w0 (t16-t32): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |
+w1  (t0-t15): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |
+w1 (t16-t32): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |
+w2  (t0-t15): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |
+w2 (t16-t32): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |
+w3  (t0-t15): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |
+w3 (t16-t32): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |
+w4  (t0-t15): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |
+w4 (t16-t32): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |
+w5  (t0-t15): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |
+w5 (t16-t32): ld.global.f32  %f2, [%r16+0] |    |    |    |    |    |      |      |
+w0  (t0-t15): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |
+w0 (t16-t32): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |
+w1  (t0-t15): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |
+w1 (t16-t32): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |
+w2  (t0-t15): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |
+w2 (t16-t32): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |
+w3  (t0-t15): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |
+w3 (t16-t32): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |
+w4  (t0-t15): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |
+w4 (t16-t32): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |
+w5  (t0-t15): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |
+w5 (t16-t32): add.f32        %f3, %f1, %f2 |    |    |    |    |    |      |      |
+w0  (t0-t15): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |
+w0 (t16-t32): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |
+w1  (t0-t15): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |
+w1 (t16-t32): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |
+w2  (t0-t15): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |
+w2 (t16-t32): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |
+w3  (t0-t15): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |
+w3 (t16-t32): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |
+w4  (t0-t15): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |
+w4 (t16-t32): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |
+w5  (t0-t15): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |
+w5 (t16-t32): st.global.f32  [%r18+0], %f3 |    |    |    |    |    |      |      |
+\end{verbatim}
+\newpage
+\begin{verbatim}
+Instr                                      | 8    | 9    | 10   | 11   | 12   | 13   |
+w0  (t0-t15): ld.global.f32  %f1, [%r14+0] | MEM3 | MEM4 | MEM5 | WB   |      |      |
+w0 (t16-t32): ld.global.f32  %f1, [%r14+0] | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |
+w1  (t0-t15): ld.global.f32  %f1, [%r14+0] | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |
+w1 (t16-t32): ld.global.f32  %f1, [%r14+0] | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 |
+w2  (t0-t15): ld.global.f32  %f1, [%r14+0] |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 |
+w2 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      | RR   | MEM1 | MEM2 | MEM3 |
+w3  (t0-t15): ld.global.f32  %f1, [%r14+0] |      | ID   |      | RR   | MEM1 | MEM2 |
+w3 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      | RR   | MEM1 |
+w4  (t0-t15): ld.global.f32  %f1, [%r14+0] |      | IF   |      | ID   |      | RR   |
+w4 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w5  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      | IF   |      | ID   |
+w5 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w0  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      | IF   |
+w0 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w1  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w1 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w2  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w2 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w3  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w3 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w4  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w4 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w5  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w5 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w0  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w0 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w1  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w1 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w2  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w2 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w3  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w3 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w4  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w4 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w5  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w5 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w0  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w0 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w1  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w1 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w2  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w2 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w3  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w3 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w4  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w4 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w5  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w5 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+\end{verbatim}
+\newpage
+\begin{verbatim}
+Instr                                      | 14   | 15   | 16   | 17   | 18   | 19   |
+w0  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w0 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w1  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w1 (t16-t32): ld.global.f32  %f1, [%r14+0] | WB   |      |      |      |      |      |
+w2  (t0-t15): ld.global.f32  %f1, [%r14+0] | MEM5 | WB   |      |      |      |      |
+w2 (t16-t32): ld.global.f32  %f1, [%r14+0] | MEM4 | MEM5 | WB   |      |      |      |
+w3  (t0-t15): ld.global.f32  %f1, [%r14+0] | MEM3 | MEM4 | MEM5 | WB   |      |      |
+w3 (t16-t32): ld.global.f32  %f1, [%r14+0] | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |
+w4  (t0-t15): ld.global.f32  %f1, [%r14+0] | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |
+w4 (t16-t32): ld.global.f32  %f1, [%r14+0] | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 |
+w5  (t0-t15): ld.global.f32  %f1, [%r14+0] |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 |
+w5 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      | RR   | MEM1 | MEM2 | MEM3 |
+w0  (t0-t15): ld.global.f32  %f2, [%r16+0] |      | ID   |      | RR   | MEM1 | MEM2 |
+w0 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      | RR   | MEM1 |
+w1  (t0-t15): ld.global.f32  %f2, [%r16+0] |      | IF   |      | ID   |      | RR   |
+w1 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w2  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      | IF   |      | ID   |
+w2 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w3  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      | IF   |
+w3 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w4  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w4 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w5  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w5 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w0  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w0 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w1  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w1 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w2  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w2 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w3  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w3 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w4  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w4 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w5  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w5 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w0  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w0 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w1  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w1 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w2  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w2 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w3  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w3 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w4  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w4 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w5  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w5 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+\end{verbatim}
+\newpage
+\begin{verbatim}
+Instr                                      | 20   | 21   | 22   | 23   | 24   | 25   |
+w0  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w0 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w1  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w1 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w2  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w2 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w3  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w3 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w4  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w4 (t16-t32): ld.global.f32  %f1, [%r14+0] | WB   |      |      |      |      |      |
+w5  (t0-t15): ld.global.f32  %f1, [%r14+0] | MEM5 | WB   |      |      |      |      |
+w5 (t16-t32): ld.global.f32  %f1, [%r14+0] | MEM4 | MEM5 | WB   |      |      |      |
+w0  (t0-t15): ld.global.f32  %f2, [%r16+0] | MEM3 | MEM4 | MEM5 | WB   |      |      |
+w0 (t16-t32): ld.global.f32  %f2, [%r16+0] | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |
+w1  (t0-t15): ld.global.f32  %f2, [%r16+0] | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |
+w1 (t16-t32): ld.global.f32  %f2, [%r16+0] | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 |
+w2  (t0-t15): ld.global.f32  %f2, [%r16+0] |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 |
+w2 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      | RR   | MEM1 | MEM2 | MEM3 |
+w3  (t0-t15): ld.global.f32  %f2, [%r16+0] |      | ID   |      | RR   | MEM1 | MEM2 |
+w3 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      | RR   | MEM1 |
+w4  (t0-t15): ld.global.f32  %f2, [%r16+0] |      | IF   |      | ID   |      | RR   |
+w4 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w5  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      | IF   |      | ID   |
+w5 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w0  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      | IF   |
+w0 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w1  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w1 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w2  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w2 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w3  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w3 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w4  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w4 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w5  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w5 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w0  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w0 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w1  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w1 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w2  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w2 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w3  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w3 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w4  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w4 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w5  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w5 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+\end{verbatim}
+\newpage
+\begin{verbatim}
+Instr                                      | 26   | 27   | 28   | 29   | 30   | 31   |
+w0  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w0 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w1  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w1 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w2  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w2 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w3  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w3 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w4  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w4 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w5  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w5 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w0  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w0 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w1  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w1 (t16-t32): ld.global.f32  %f2, [%r16+0] | WB   |      |      |      |      |      |
+w2  (t0-t15): ld.global.f32  %f2, [%r16+0] | MEM5 | WB   |      |      |      |      |
+w2 (t16-t32): ld.global.f32  %f2, [%r16+0] | MEM4 | MEM5 | WB   |      |      |      |
+w3  (t0-t15): ld.global.f32  %f2, [%r16+0] | MEM3 | MEM4 | MEM5 | WB   |      |      |
+w3 (t16-t32): ld.global.f32  %f2, [%r16+0] | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |
+w4  (t0-t15): ld.global.f32  %f2, [%r16+0] | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |
+w4 (t16-t32): ld.global.f32  %f2, [%r16+0] | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 |
+w5  (t0-t15): ld.global.f32  %f2, [%r16+0] |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 |
+w5 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      | RR   | MEM1 | MEM2 | MEM3 |
+w0  (t0-t15): add.f32        %f3, %f1, %f2 |      | ID   |      | RR   | EX1  | EX2  |
+w0 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      | RR   | EX1  |
+w1  (t0-t15): add.f32        %f3, %f1, %f2 |      | IF   |      | ID   |      | RR   |
+w1 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w2  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      | IF   |      | ID   |
+w2 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w3  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      | IF   |
+w3 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w4  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w4 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w5  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w5 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w0  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w0 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w1  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w1 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w2  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w2 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w3  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w3 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w4  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w4 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w5  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w5 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+\end{verbatim}
+\newpage
+\begin{verbatim}
+Instr                                      | 32   | 33   | 34   | 35   | 36   | 37   |
+w0  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w0 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w1  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w1 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w2  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w2 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w3  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w3 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w4  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w4 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w5  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w5 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w0  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w0 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w1  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w1 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w2  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w2 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w3  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w3 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w4  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w4 (t16-t32): ld.global.f32  %f2, [%r16+0] | WB   |      |      |      |      |      |
+w5  (t0-t15): ld.global.f32  %f2, [%r16+0] | MEM5 | WB   |      |      |      |      |
+w5 (t16-t32): ld.global.f32  %f2, [%r16+0] | MEM4 | MEM5 | WB   |      |      |      |
+w0  (t0-t15): add.f32        %f3, %f1, %f2 | EX3  |      |      | WB   |      |      |
+w0 (t16-t32): add.f32        %f3, %f1, %f2 | EX2  | EX3  |      |      | WB   |      |
+w1  (t0-t15): add.f32        %f3, %f1, %f2 | EX1  | EX2  | EX3  |      |      | WB   |
+w1 (t16-t32): add.f32        %f3, %f1, %f2 | RR   | EX1  | EX2  | EX3  |      |      |
+w2  (t0-t15): add.f32        %f3, %f1, %f2 |      | RR   | EX1  | EX2  | EX3  |      |
+w2 (t16-t32): add.f32        %f3, %f1, %f2 |      |      | RR   | EX1  | EX2  | EX3  |
+w3  (t0-t15): add.f32        %f3, %f1, %f2 |      | ID   |      | RR   | EX1  | EX2  |
+w3 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      | RR   | EX1  |
+w4  (t0-t15): add.f32        %f3, %f1, %f2 |      | IF   |      | ID   |      | RR   |
+w4 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w5  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      | IF   |      | ID   |
+w5 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w0  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      | IF   |
+w0 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w1  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w1 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w2  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w2 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w3  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w3 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w4  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w4 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w5  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w5 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+\end{verbatim}
+\newpage
+\begin{verbatim}
+Instr                                      | 38   | 39   | 40   | 41   | 42   | 43   |
+w0  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w0 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w1  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w1 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w2  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w2 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w3  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w3 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w4  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w4 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w5  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w5 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w0  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w0 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w1  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w1 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w2  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w2 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w3  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w3 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w4  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w4 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w5  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w5 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w0  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w0 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w1  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w1 (t16-t32): add.f32        %f3, %f1, %f2 | WB   |      |      |      |      |      |
+w2  (t0-t15): add.f32        %f3, %f1, %f2 |      | WB   |      |      |      |      |
+w2 (t16-t32): add.f32        %f3, %f1, %f2 |      |      | WB   |      |      |      |
+w3  (t0-t15): add.f32        %f3, %f1, %f2 | EX3  |      |      | WB   |      |      |
+w3 (t16-t32): add.f32        %f3, %f1, %f2 | EX2  | EX3  |      |      | WB   |      |
+w4  (t0-t15): add.f32        %f3, %f1, %f2 | EX1  | EX2  | EX3  |      |      | WB   |
+w4 (t16-t32): add.f32        %f3, %f1, %f2 | RR   | EX1  | EX2  | EX3  |      |      |
+w5  (t0-t15): add.f32        %f3, %f1, %f2 |      | RR   | EX1  | EX2  | EX3  |      |
+w5 (t16-t32): add.f32        %f3, %f1, %f2 |      |      | RR   | EX1  | EX2  | EX3  |
+w0  (t0-t15): st.global.f32  [%r18+0], %f3 |      | ID   |      | RR   | MEM1 | MEM2 |
+w0 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      | RR   | MEM1 |
+w1  (t0-t15): st.global.f32  [%r18+0], %f3 |      | IF   |      | ID   |      | RR   |
+w1 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w2  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      | IF   |      | ID   |
+w2 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w3  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      | IF   |
+w3 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w4  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w4 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w5  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w5 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+\end{verbatim}
+\newpage
+\begin{verbatim}
+Instr                                      | 44   | 45   | 46   | 47   | 48   | 49   |
+w0  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w0 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w1  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w1 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w2  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w2 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w3  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w3 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w4  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w4 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w5  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w5 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w0  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w0 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w1  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w1 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w2  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w2 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w3  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w3 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w4  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w4 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w5  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w5 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w0  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w0 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w1  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w1 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w2  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w2 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w3  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w3 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w4  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w4 (t16-t32): add.f32        %f3, %f1, %f2 | WB   |      |      |      |      |      |
+w5  (t0-t15): add.f32        %f3, %f1, %f2 |      | WB   |      |      |      |      |
+w5 (t16-t32): add.f32        %f3, %f1, %f2 |      |      | WB   |      |      |      |
+w0  (t0-t15): st.global.f32  [%r18+0], %f3 | MEM3 | MEM4 | MEM5 | WB   |      |      |
+w0 (t16-t32): st.global.f32  [%r18+0], %f3 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |
+w1  (t0-t15): st.global.f32  [%r18+0], %f3 | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |
+w1 (t16-t32): st.global.f32  [%r18+0], %f3 | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 |
+w2  (t0-t15): st.global.f32  [%r18+0], %f3 |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 |
+w2 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      | RR   | MEM1 | MEM2 | MEM3 |
+w3  (t0-t15): st.global.f32  [%r18+0], %f3 |      | ID   |      | RR   | MEM1 | MEM2 |
+w3 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      | RR   | MEM1 |
+w4  (t0-t15): st.global.f32  [%r18+0], %f3 |      | IF   |      | ID   |      | RR   |
+w4 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w5  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      | IF   |      | ID   |
+w5 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+\end{verbatim}
+\newpage
+\begin{verbatim}
+Instr                                      | 50   | 51   | 52   | 53   | 54   | 55   |
+w0  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w0 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w1  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w1 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w2  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w2 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w3  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w3 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w4  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w4 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w5  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w5 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |      |      |      |
+w0  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w0 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w1  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w1 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w2  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w2 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w3  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w3 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w4  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w4 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w5  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w5 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |      |      |      |
+w0  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w0 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w1  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w1 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w2  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w2 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w3  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w3 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w4  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w4 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w5  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w5 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |      |      |      |
+w0  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w0 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w1  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |      |      |      |
+w1 (t16-t32): st.global.f32  [%r18+0], %f3 | WB   |      |      |      |      |      |
+w2  (t0-t15): st.global.f32  [%r18+0], %f3 | MEM5 | WB   |      |      |      |      |
+w2 (t16-t32): st.global.f32  [%r18+0], %f3 | MEM4 | MEM5 | WB   |      |      |      |
+w3  (t0-t15): st.global.f32  [%r18+0], %f3 | MEM3 | MEM4 | MEM5 | WB   |      |      |
+w3 (t16-t32): st.global.f32  [%r18+0], %f3 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |      |
+w4  (t0-t15): st.global.f32  [%r18+0], %f3 | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 | WB   |
+w4 (t16-t32): st.global.f32  [%r18+0], %f3 | RR   | MEM1 | MEM2 | MEM3 | MEM4 | MEM5 |
+w5  (t0-t15): st.global.f32  [%r18+0], %f3 |      | RR   | MEM1 | MEM2 | MEM3 | MEM4 |
+w5 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      | RR   | MEM1 | MEM2 | MEM3 |
+\end{verbatim}
+\newpage
+\begin{verbatim}
+Instr                                      | 56   | 57   | 58   |
+w0  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      | 
+w0 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      | 
+w1  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      | 
+w1 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      | 
+w2  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      | 
+w2 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |
+w3  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |
+w3 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |
+w4  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |
+w4 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |
+w5  (t0-t15): ld.global.f32  %f1, [%r14+0] |      |      |      |
+w5 (t16-t32): ld.global.f32  %f1, [%r14+0] |      |      |      |
+w0  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |
+w0 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |
+w1  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |
+w1 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |
+w2  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |
+w2 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |
+w3  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |
+w3 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |
+w4  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |
+w4 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |
+w5  (t0-t15): ld.global.f32  %f2, [%r16+0] |      |      |      |
+w5 (t16-t32): ld.global.f32  %f2, [%r16+0] |      |      |      |
+w0  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |
+w0 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |
+w1  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      | 
+w1 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      | 
+w2  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      | 
+w2 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      | 
+w3  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      | 
+w3 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      | 
+w4  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      | 
+w4 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |
+w5  (t0-t15): add.f32        %f3, %f1, %f2 |      |      |      |
+w5 (t16-t32): add.f32        %f3, %f1, %f2 |      |      |      |
+w0  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |
+w0 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |
+w1  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |
+w1 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |
+w2  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |
+w2 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |
+w3  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |
+w3 (t16-t32): st.global.f32  [%r18+0], %f3 |      |      |      |
+w4  (t0-t15): st.global.f32  [%r18+0], %f3 |      |      |      |
+w4 (t16-t32): st.global.f32  [%r18+0], %f3 | WB   |      |      |
+w5  (t0-t15): st.global.f32  [%r18+0], %f3 | MEM5 | WB   |      |
+w5 (t16-t32): st.global.f32  [%r18+0], %f3 | MEM4 | MEM5 | WB   |
+\end{verbatim}
+
+
+\end{Answer}
+
+\newpage
+
+\end{document}
