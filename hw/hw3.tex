@@ -72,6 +72,7 @@ PC      Instruction               Comment
 ...     ...                       ...
 *0140*  EXIT;
 \end{verbatim}
+With a warp size of 8, show how the SIMT stack is updated during the execution for the following two warps. (1) The branch at PC=x0090 is taken for all 8 threads in a warp. (2) Among the 8 threads in a warp, the branch outcomes are: taken for the first 2 threads and not-taken for the remaining 6 threads. (Hint: you can refer to the slides in our course notes to see one format that we used to show the SIMT stack states)
 
 
 \begin{Answer}
