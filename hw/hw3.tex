@@ -1,0 +1,82 @@
+\documentclass[11pt]{article}
+\usepackage{ece786}
+
+%%%%%%%%%%%%%%%%%%%% name/id
+\rfoot{\small Brian Park | 200190057}
+
+
+%%%%%%%%%%%%%%%%%%%% Course/HW info
+\newcommand*{\instr}{Huiyang Zhou}
+\newcommand*{\term}{Spring 2023}
+\newcommand*{\coursenum}{ECE 786}
+\newcommand*{\coursename}{Advanced Computer Architecture: Data Parallel Processors}
+\newcommand*{\hwnum}{3}
+
+\rhead{\LARGE   \fontfamily{lmdh}\selectfont	HW \hwnum}
+
+\lfoot{\small \coursenum, \term, HW \hwnum}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Document Start %%%%%%%%%%%%%%%%%
+\begin{document}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Question 1
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{}
+
+Considering the following code in a GPU kernel function:
+
+\begin{verbatim}
+int index = blockIdx.x*blockDim.x + threadIdx.x;
+
+       if (index > x1) // Section 1 - THEN
+
+       {   
+
+                 …  
+
+        }
+
+        else                    //Section 1- ELSE
+
+        {
+
+                …
+
+        }              
+
+d_e [index] = d_c [index] + d_d [index] ;
+\end{verbatim}
+
+Assuming that the corresponding assembly code is as follows:
+
+\begin{verbatim}
+PC      Instruction               Comment
+*0000*  MOV R1, c [0x1] [0x100];
+*0020*  SSY 0xf0;                 SSY Instruction (push stack)
+*0028*  ...                       ...
+                                    
+*0090*  @P0 BRA 0xb8;             Branch corresponding to Outer IF Then-Else 
+                                  (push stack if divergent)
+*0098*  LD.E R3, [R2];            ELSE PART
+...
+*00b0*  ST.E.S [R6], R2;          ELSE PART. Notice ".S" flag. (pop stack)
+*00b8*  LD.E R5, [R4];            IF THEN PART
+...     ...                       ...
+*00e8*  NOP.S CC.T;               Last Instruction of Outer If-Then. Notice ".S" flag. 
+                                  (pop stack)
+*00f0*  LD.E R3, [R10];           Threads Synchronizes at this point.
+*00f8*  LD.E R4, [R8];            ...
+*0100*  LD.E R2, [R6];            Go till Exit.
+...     ...                       ...
+*0140*  EXIT;
+\end{verbatim}
+
+
+\begin{Answer}
+\end{Answer}
+
+\newpage
+
+\end{document}
