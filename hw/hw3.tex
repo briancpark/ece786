@@ -28,25 +28,23 @@
 Considering the following code in a GPU kernel function:
 
 \begin{verbatim}
-int index = blockIdx.x*blockDim.x + threadIdx.x;
+int index = blockIdx.x * blockDim.x + threadIdx.x;
 
-       if (index > x1) // Section 1 - THEN
+if (index > x1)      // Section 1 - THEN
+{   
 
-       {   
+                …  
 
-                 …  
+}
 
-        }
-
-        else                    //Section 1- ELSE
-
-        {
+else                 // Section 1 - ELSE
+{
 
                 …
 
-        }              
+}              
 
-d_e [index] = d_c [index] + d_d [index] ;
+d_e[index] = d_c[index] + d_d[index];
 \end{verbatim}
 
 Assuming that the corresponding assembly code is as follows:
@@ -72,12 +70,65 @@ PC      Instruction               Comment
 ...     ...                       ...
 *0140*  EXIT;
 \end{verbatim}
-With a warp size of 8, show how the SIMT stack is updated during the execution for the following two warps. (1) The branch at PC=x0090 is taken for all 8 threads in a warp. (2) Among the 8 threads in a warp, the branch outcomes are: taken for the first 2 threads and not-taken for the remaining 6 threads. (Hint: you can refer to the slides in our course notes to see one format that we used to show the SIMT stack states)
+With a warp size of 8, show how the SIMT stack is updated during the execution for the following two warps. (1) The branch at \verb|PC=x0090| is taken for all 8 threads in a warp. (2) Among the 8 threads in a warp, the branch outcomes are: taken for the first 2 threads and not-taken for the remaining 6 threads. (Hint: you can refer to the slides in our course notes to see one format that we used to show the SIMT stack states)
 
 
-\begin{Answer}
-\end{Answer}
+Case (1): Branch at \verb|PC=x0090| is taken for all 8 threads in a warp (no divergence).\\
 
+% Create a table
+\begin{table}[H]
+    \centering % used for centering table
+    \begin{tabular}{c c c c c c} % centered columns (4 columns)
+    \hline\hline %inserts double horizontal lines
+    PC & Active Mask & TOS & TOS-1 & TOS-2 & Comments \\ [0.5ex] % inserts table
+    %heading
+    \hline % inserts single horizontal line
+    0000 & \verb|11111111| & & & & \\
+    0020 & \verb|11111111| & & & & Before SSY \\
+    0028 & \verb|11111111| & \verb|SSY 0xf0| & & & After SSY \\
+    0090 & \verb|11111111| & \verb|SSY 0xf0| & & & Before Branch \\
+    00b8 & \verb|11111111| & \verb|SSY 0xf0| & & & After Branch \\
+    ...  & \verb|11111111| & \verb|SSY 0xf0| & & & \\ 
+    00e8 & \verb|11111111| & \verb|SSY 0xf0| & & & NOP.S (pop)\\
+    00f0 & \verb|11111111| & & & & LD.E \\
+    00f8 & \verb|11111111| & & & & LD.E \\
+    0100 & \verb|11111111| & & & & LD.E \\
+    ...  & \verb|11111111| & & & & \\
+    0140 & \verb|11111111| & & & & EXIT \\
+
+\hline %inserts single line
+\end{tabular}
+\label{table:nonlin} % is used to refer this table in the text
+\end{table}
+
+Case (2): Branch at \verb|PC=x0090| is taken for first two threads and not taken for other 6 (divergence)
+% Create a table
+\begin{table}[H]
+    \centering % used for centering table
+    \begin{tabular}{c c c c c c} % centered columns (4 columns)
+    \hline\hline %inserts double horizontal lines
+    PC & Active Mask & TOS & TOS-1 & TOS-2 & Comments \\ [0.5ex] % inserts table
+    %heading
+    \hline % inserts single horizontal line
+    0000 & \verb|11111111| & & & & \\
+    0020 & \verb|11111111| & & & & Before SSY \\
+    0028 & \verb|11111111| & \verb|SSY 0xf0| & & & After SSY \\
+    0090 & \verb|00111111| & \verb|SSY 0xf0| & & & Before Branch \\
+    0098 & \verb|00111111| & \verb|DIV 0xf0 0xb8| & \verb|SSY 0xf0| & & After Branch \\
+    ...  & \verb|00111111| & \verb|DIV 0xf0 0xb8| & \verb|SSY 0xf0| & & \\
+    00b0 & \verb|00111111| & \verb|DIV 0xf0 0xb8| & \verb|SSY 0xf0| & & Before ST.E.S (pop)\\
+    00b8 & \verb|11000000| & \verb|SSY 0xf0| & & & After ST.E.S \\
+    ...  & \verb|11000000| & \verb|SSY 0xf0| & & & \\
+    00e8 & \verb|11000000| & \verb|SSY 0xf0| & & & NOP.S (pop)\\
+    00f0 & \verb|11111111| & & & & LD.E \\
+    00f8 & \verb|11111111| & & & & LD.E \\
+    0100 & \verb|11111111| & & & & LD.E \\
+    ...  & \verb|11111111| & & & & \\
+    0140 & \verb|11111111| & & & & EXIT \\
+\hline %inserts single line
+\end{tabular}
+\label{table:nonlin} % is used to refer this table in the text
+\end{table}
 \newpage
 
 \end{document}
