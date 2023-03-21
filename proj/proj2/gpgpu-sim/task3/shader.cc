@@ -1355,14 +1355,19 @@ void scheduler_unit::cycle()
                         m_shader->get_active_mask(warp_id, pI);
 
                     // Check for divergence in active mask
-                    m_stats->conditional_branch_instr++;
-                    if (active_mask != 0xffffffff)
+
+                    // First check if instruction is a branch
+                    if (pI->op == BRANCH_OP)
                     {
-                        m_stats->conditional_branch_instr_diverged++;
-                        SCHED_DPRINTF(
-                            "Warp (warp_id %u, dynamic_warp_id %u, active_mask %u) control hazard "
-                            "instruction flush\n",
-                            (*iter)->get_warp_id(), (*iter)->get_dynamic_warp_id(), active_mask);
+                        m_stats->conditional_branch_instr++;
+                        if (active_mask != 0xffffffff)
+                        {
+                            m_stats->conditional_branch_instr_diverged++;
+                            SCHED_DPRINTF(
+                                "Warp (warp_id %u, dynamic_warp_id %u, active_mask %u) control hazard "
+                                "instruction flush\n",
+                                (*iter)->get_warp_id(), (*iter)->get_dynamic_warp_id(), active_mask);
+                        }
                     }
                     warp(warp_id).set_next_pc(pc);
                     warp(warp_id).ibuffer_flush();
