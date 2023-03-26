@@ -1842,8 +1842,7 @@ struct shader_core_stats_pod
     long *n_simt_to_mem; // Interconnect power stats
     long *n_mem_to_simt;
 
-    unsigned global_memory_accesses;
-    unsigned local_memory_accesses;
+    unsigned gpgpu_n_bypassL1D;
 };
 
 class shader_core_stats : public shader_core_stats_pod

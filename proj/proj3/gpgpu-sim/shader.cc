@@ -727,8 +727,7 @@ void shader_core_stats::print(FILE *fout) const
                                            [DATA_PORT_STALL]); // data port stall
                                                                // at data cache
 
-    fprintf(fout, "global_memory_accesses  = %d\n", global_memory_accesses);
-    fprintf(fout, "local_memory_accesses  = %d\n", local_memory_accesses);
+    fprintf(fout, "bypassed load instructions: %d\n", gpgpu_n_bypassL1D);
     // fprintf(fout, "gpgpu_stall_shd_mem[g_mem_ld][mshr_rc] = %d\n",
     // gpu_stall_shd_mem_breakdown[G_MEM_LD][MSHR_RC_FAIL]); fprintf(fout,
     // "gpgpu_stall_shd_mem[g_mem_ld][icnt_rc] = %d\n",
@@ -1351,9 +1350,6 @@ void scheduler_unit::cycle()
                         "instruction flush\n",
                         (*iter)->get_warp_id(), (*iter)->get_dynamic_warp_id());
                     // control hazard
-                    const active_mask_t &active_mask =
-                        m_shader->get_active_mask(warp_id, pI);
-
                     warp(warp_id).set_next_pc(pc);
                     warp(warp_id).ibuffer_flush();
                 }
@@ -2075,6 +2071,7 @@ mem_stage_stall_type ldst_unit::process_cache_access(
     mem_stage_stall_type result = NO_RC_FAIL;
     bool write_sent = was_write_sent(events);
     bool read_sent = was_read_sent(events);
+
     if (write_sent)
     {
         unsigned inc_ack = (m_config->m_L1D_config.get_mshr_type() == SECTOR_ASSOC)
@@ -2363,6 +2360,7 @@ bool ldst_unit::memory_cycle(warp_inst_t &inst,
     const mem_access_t &access = inst.accessq_back();
 
     bool bypassL1D = false;
+
     if (CACHE_GLOBAL == inst.cache_op || (m_L1D == NULL))
     {
         bypassL1D = true;
@@ -2370,14 +2368,17 @@ bool ldst_unit::memory_cycle(warp_inst_t &inst,
     else if (inst.space.is_global())
     { // global memory access
         // skip L1 cache if the option is enabled
-        m_stats->global_memory_accesses++;
         if (m_core->get_config()->gmem_skip_L1D && (CACHE_L1 != inst.cache_op))
             bypassL1D = true;
+    }
+    if ((access.get_addr() >= 0xc0000000) && (access.get_addr() <= 0xc00fffff))
+    {
+        bypassL1D = true;
+        m_stats->gpgpu_n_bypassL1D++;
     }
 
     if (bypassL1D)
     {
-        m_stats->local_memory_accesses++;
         // bypass L1 cache
         unsigned control_size =
             inst.is_store() ? WRITE_PACKET_SIZE : READ_PACKET_SIZE;
@@ -2962,7 +2963,6 @@ void ldst_unit::cycle()
     if (!m_response_fifo.empty())
     {
         mem_fetch *mf = m_response_fifo.front();
-
         if (mf->get_access_type() == TEXTURE_ACC_R)
         {
             if (m_L1T->fill_port_free())
@@ -2999,9 +2999,10 @@ void ldst_unit::cycle()
                                              // on load miss only
 
                 bool bypassL1D = false;
-                if (CACHE_GLOBAL == mf->get_inst().cache_op || (m_L1D == NULL))
+                if (CACHE_GLOBAL == mf->get_inst().cache_op || (m_L1D == NULL) || (mf->get_addr() >= 0xc0000000 && mf->get_addr() <= 0xc00fffff))
                 {
                     bypassL1D = true;
+                    m_stats->gpgpu_n_bypassL1D++;
                 }
                 else if (mf->get_access_type() == GLOBAL_ACC_R ||
                          mf->get_access_type() ==
