@@ -1,36 +1,14 @@
+#include <bitset>
 #include <cuda_runtime.h>
 #include <fstream>
 #include <iostream>
 #include <stdio.h>
 #include <string>
 #include <vector>
-
 using namespace std;
 
-void quantum_simulation_cpu(float* U, float* a, float* output, size_t qubit, size_t N) {
-    // Perform quantum simulation on qubit
-    for (size_t i = 0; i < N; i++) {
-        if ((i & (1 << qubit)) == 0) {
-            output[i] = U[0] * a[i] + U[1] * a[i + (1 << qubit)];
-        } else {
-            output[i] = U[2] * a[i - (1 << qubit)] + U[3] * a[i];
-        }
-    }
-}
-
-__global__ void device_to_device_memcpy(float* a, float* b, int N) {
-    int tid = blockDim.x * blockIdx.x + threadIdx.x;
-
-    if (tid > N)
-        return;
-
-    b[tid] = a[tid];
-}
-
-__device__ void inline quantum_kernel(float* U, float* a, float* output, size_t qubit, size_t N,
+__device__ void inline quantum_kernel(float* U, float* a, float* output, size_t qid, size_t N,
                                       int tid) {
-    register size_t qid = 1 << qubit;
-
     if (tid & qid)
         output[tid] = U[2] * a[tid - qid] + U[3] * a[tid];
     else
@@ -39,18 +17,21 @@ __device__ void inline quantum_kernel(float* U, float* a, float* output, size_t 
 
 __global__ void quantum_simulation_gpu(const float* U_0, const float* U_1, const float* U_2,
                                        const float* U_3, const float* U_4, const float* U_5,
-                                       const float* a, float* output, int qubit0, int qubit1,
-                                       int qubit2, int qubit3, int qubit4, int qubit5, int N) {
+                                       const float* a, float* output, size_t qubit0, size_t qubit1,
+                                       size_t qubit2, size_t qubit3, size_t qubit4, size_t qubit5,
+                                       size_t N, size_t* auxillary_array) {
 
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
-
+    // TODO: unnecessary?
+    if (tid >= N / 2) {
+        return;
+    }
+    printf("tid = %d\n", tid);
     // For an n-qubit quantum circuit that has an initial quantum state of 2^n values, split the 2^n
     // values into several independent fragments of size 2^6, then map each fragment to one GPU
     // thread block. For each thread block, load the 2^6 values of the fragment from global memory
     // to shared memory. (The reason for using 2^6 as the fragment size is because there are six
     // single-qubit gates applied to six different qubits.)
-
-    extern __shared__ float a_shared[64];
 
     size_t qid0 = 1 << qubit0;
     size_t qid1 = 1 << qubit1;
@@ -59,30 +40,121 @@ __global__ void quantum_simulation_gpu(const float* U_0, const float* U_1, const
     size_t qid4 = 1 << qubit4;
     size_t qid5 = 1 << qubit5;
 
-    a_shared[tid * 2] = a[tid * 2];
-    a_shared[(tid * 2) + 1] = a[(tid * 2) + 1];
+    if (tid == 0) {
+        // printf(
+        // "qubit0 = %lu, qubit1 = %lu, qubit2 = %lu, qubit3 = %lu, qubit4 = %lu, qubit5 = %lu\n",
+        // qubit0, qubit1, qubit2, qubit3, qubit4, qubit5);
+        printf("qid0 = %lu, qid1 = %lu, qid2 = %lu, qid3 = %lu, qid4 = %lu, qid5 = %lu\n", qid0,
+               qid1, qid2, qid3, qid4, qid5);
+    }
+    __shared__ float a_shared[64];
+    __shared__ float output_shared[64];
 
-    __syncthreads();
+    size_t t = N - 1;
+    size_t bid = blockDim.x * blockIdx.x;
+    if (tid == 0) {
+        printf("t = %lu\n", t);
+    }
+    // set t's 1s to 0s based on qids
+    size_t bitmask = qid0 | qid1 | qid2 | qid3 | qid4 | qid5;
+    t &= ~bitmask;
 
-    // Apply the six single-qubit gates on each of the fragments and get the results. Similar to
-    // applying 6 gates on a 6-qubit circuit, you can split this process into 6 steps: applying the
-    // first gate to qubit 0, applying the second gate to qubit 1, applying the third gate to qubit
-    // 2, applying the fourth gate to qubit 3, applying the fifth gate to qubit 4, and applying the
-    // sixth gate to qubit 5. And for each of the steps, the computation is the same as in PA1, and
-    // here since we have 2^6 values that need to be calculated in each thread block, there will be
-    // 2^5 threads in each thread block, one thread will do one matrix multiplication
+    if (tid == 0) {
+        printf("bitmask = %lu\n", bitmask);
+        printf("t = %lu\n", t);
+    }
 
-    __syncthreads();
-    // call the kernel function
-    quantum_kernel((float*)U_0, a_shared, output, qubit0, N, tid);
-    __syncthreads();
-    // copy shared memory back to global memory
-    output[tid * 2] = a_shared[tid * 2];
-    output[(tid * 2) + 1] = a_shared[(tid * 2) + 1];
-    printf("shared[%d] = %f\n", tid, a_shared[tid]);
-    printf("output[%d] = %f\n", tid, output[tid]);
+    printf("bid = %lu\n", bid);
+
+    // based on the bid, set the t bits to 1s
+    // THIS IS ONLY FOR 128
+    if (bid < 32) {
+        t = 0;
+    } else {
+        t = 2;
+    }
     __syncthreads();
     __syncwarp();
+
+    if (tid % 32 == 0) {
+        for (int i = 0; i < 64; i++) {
+            printf("auxillary_array[%d] = %lu\n", i, auxillary_array[i]);
+            a_shared[i] = a[auxillary_array[i] + t];
+        }
+    }
+
+    __syncthreads();
+    __syncwarp();
+
+    if (tid == 0) {
+        for (int i = 0; i < 64; i++) {
+            printf("a_shared[%d] = %f\n", i, a_shared[i]);
+        }
+    }
+    __syncthreads();
+    __syncwarp();
+
+    // Apply the six single-qubit gates on each of the fragments and get the results. Similar to
+    // applying 6 gates on a 6-qubit circuit, you can split this process into 6 steps: applying
+    // the first gate to qubit 0, applying the second gate to qubit 1, applying the third gate
+    // to qubit 2, applying the fourth gate to qubit 3, applying the fifth gate to qubit 4, and
+    // applying the sixth gate to qubit 5. And for each of the steps, the computation is the
+    // same as in PA1, and here since we have 2^6 values that need to be calculated in each
+    // thread block, there will be 2^5 threads in each thread block, one thread will do one
+    // matrix multiplication
+
+    // The auxiliary array is used to store the indices of the 2^6 values that need to be
+    // calculated in each thread block.
+    // We can perform quantum simulation by using the auxiliary array to map the 2^6 values where
+    // they are stored consecutively
+
+    // Apply the first gate to qubit 0
+    __syncthreads();
+    __syncwarp();
+    size_t tid_0 = threadIdx.x * 2;
+    size_t tid_1 = threadIdx.x * 2 + 1;
+
+    if (qid0&)
+
+        __syncthreads();
+    __syncwarp();
+
+    // copy output_shared back to a_shared
+    a_shared[tid_0] = output_shared[tid_0];
+    a_shared[tid_1] = output_shared[tid_1];
+
+    __syncthreads();
+    __syncwarp();
+
+    // if (tid % 32 == 0) {
+    //     for (int i = 0; i < 64; i++) {
+    //         printf("a_shared[%d] = %f\n", i, a_shared[i]);
+    //         printf("output_shared[%d] = %f\n", i, output_shared[i]);
+    //     }
+    // }
+
+    // printf("%f * %f = %f\n", U_1[0], a_shared[tid_0], U_1[0] * a_shared[tid_0]);
+    // printf("%f * %f = %f\n", U_1[1], a_shared[tid_1], U_1[1] * a_shared[tid_1]);
+    // printf("%f * %f = %f\n", U_1[2], a_shared[tid_0], U_1[2] * a_shared[tid_0]);
+    // printf("%f * %f = %f\n", U_1[3], a_shared[tid_1], U_1[3] * a_shared[tid_1]);
+
+    if (tid0 & qid0) {
+        output_shared[tid_0] = U_1[0] * a_shared[tid_0] + U_1[1] * a_shared[tid_1];
+    }
+    output_shared[tid_0] = U_1[0] * a_shared[tid_0] + U_1[1] * a_shared[tid_1];
+    output_shared[tid_1] = U_1[2] * a_shared[tid_0] + U_1[3] * a_shared[tid_1];
+
+    // output_shared[tid_0] = U_2[0] * a_shared[tid_0] + U_2[1] * a_shared[tid_1];
+    // output_shared[tid_1] = U_2[2] * a_shared[tid_0] + U_2[3] * a_shared[tid_1];
+
+    __syncthreads();
+    __syncwarp();
+    // copy back output_shared to output
+    output[auxillary_array[tid_0] + t] = output_shared[tid_0];
+    output[auxillary_array[tid_1] + t] = output_shared[tid_1];
+    __syncthreads();
+    __syncwarp();
+    return;
 }
 
 int main(int argc, char** argv) {
@@ -145,12 +217,12 @@ int main(int argc, char** argv) {
     input_file >> qubit_5;
 
     // TODO (bcp) DEBUG: Print the qubits:
-    // cout << qubit_0 << endl;
-    // cout << qubit_1 << endl;
-    // cout << qubit_2 << endl;
-    // cout << qubit_3 << endl;
-    // cout << qubit_4 << endl;
-    // cout << qubit_5 << endl;
+    cout << qubit_0 << endl;
+    cout << qubit_1 << endl;
+    cout << qubit_2 << endl;
+    cout << qubit_3 << endl;
+    cout << qubit_4 << endl;
+    cout << qubit_5 << endl;
 
     float* output = (float*)malloc(a.size() * sizeof(float));
 
@@ -182,13 +254,65 @@ int main(int argc, char** argv) {
     cout << "Blocks per grid: " << blocksPerGrid << endl;
     cout << "Threads per block: " << threadsPerBlock << endl;
 
+    /*
+    (const float* U_0, const float* U_1, const float* U_2,
+    const float* U_3, const float* U_4, const float* U_5,
+    const float* a, float* output, size_t qubit0, size_t
+    qubit1, size_t qubit2, size_t qubit3, size_t qubit4, size_t qubit5, size_t N) {
+    */
+
+    cout << qubit_0 << endl;
+    cout << qubit_1 << endl;
+    cout << qubit_2 << endl;
+    cout << qubit_3 << endl;
+    cout << qubit_4 << endl;
+    cout << qubit_5 << endl;
+
+    size_t* auxillary_array = (size_t*)malloc(64 * sizeof(size_t));
+    size_t* auxillary_array_gpu;
+
+    size_t qubits[6] = {qubit_0, qubit_1, qubit_2, qubit_3, qubit_4, qubit_5};
+
+    // enumerate all possible combinations of the qubits indices and store them in the auxillary
+    // array for example, if the qubits are 0, 2, 4, then the possible combinations are: 0, 1,
+    // 4, 5, 16, 17, 20, 21 in decimal 0, 1, 100, 101, 10000, 10001, 10100, 10101 in binary
+    for (int i = 0; i < 64; i++) {
+        int sum = 0;
+        for (int j = 0; j < 6; j++) {
+            if (i & (1 << j)) {
+                sum += pow(2, qubits[j]);
+            }
+        }
+        auxillary_array[i] = sum;
+    }
+
+    cudaMalloc(&auxillary_array_gpu, 64 * sizeof(size_t));
+    cudaMemcpy(auxillary_array_gpu, auxillary_array, 64 * sizeof(size_t), cudaMemcpyHostToDevice);
+
+    // print the contents of the auxillary array in binary
+    // for (int i = 0; i < 64; i++) {
+    //     // binary
+    //     cout << bitset<6>(auxillary_array[i]) << endl;
+    // }
+
     quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(
         U_0_gpu, U_1_gpu, U_2_gpu, U_3_gpu, U_4_gpu, U_5_gpu, a_gpu, output_gpu, qubit_0, qubit_1,
-        qubit_2, qubit_3, qubit_4, qubit_5, a.size());
+        qubit_2, qubit_3, qubit_4, qubit_5, a.size(), auxillary_array_gpu);
 
-    cudaDeviceSynchronize();
-    cudaMemcpy(output, output_gpu, a.size() * sizeof(float), cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
+    // err
+    cudaError_t err;
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        printf("Error: %s\n", cudaGetErrorString(err));
+    }
+    err = cudaMemcpy(output, output_gpu, a.size() * sizeof(float), cudaMemcpyDeviceToHost);
+    if (err != cudaSuccess) {
+        printf("Error: %s\n", cudaGetErrorString(err));
+    }
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        printf("Error: %s\n", cudaGetErrorString(err));
+    }
     // Print the output vector
     for (int i = 0; i < a.size(); i++) {
         printf("%.3f\n", output[i]);
