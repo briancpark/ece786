@@ -25,6 +25,7 @@ __global__ void device_to_device_memcpy(float* a, float* b, int N) {
         return;
 
     b[tid] = a[tid];
+    __syncthreads();
 }
 
 __global__ void quantum_simulation_gpu(const float* U, const float* a, float* output, int qubit,
@@ -36,10 +37,15 @@ __global__ void quantum_simulation_gpu(const float* U, const float* a, float* ou
     if (tid > N)
         return;
 
-    if (tid & qid)
+    if (tid & qid) {
         output[tid] = U[2] * a[tid - qid] + U[3] * a[tid];
-    else
+        // printf("%f * %f = %f\n", U[2], a[tid - qid], U[2] * a[tid - qid]);
+    } else {
         output[tid] = U[0] * a[tid] + U[1] * a[tid + qid];
+        // printf("%f * %f = %f\n", U[0], a[tid], U[0] * a[tid]);
+    }
+
+    __syncthreads();
 }
 
 int main(int argc, char** argv) {
@@ -72,11 +78,6 @@ int main(int argc, char** argv) {
         for (int i = 0; i < 4; i++) {
             input_file >> U[i];
         }
-        // TODO (bcp) DEBUG
-        // for (int i = 0; i < 4; i++) {
-        //     cout << U[i] << " ";
-        // }
-        // cout << endl;
     }
 
     // Read in the vector until we hit an empty line
@@ -88,11 +89,6 @@ int main(int argc, char** argv) {
         a.push_back(stof(line));
     }
 
-    // Print the vector contents:
-    // for (int i = 0; i < a.size(); i++) {
-    //     printf("%.3f\n", a[i]);
-    // }
-
     // Read in the qubit
     input_file >> qubit_0;
     input_file >> qubit_1;
@@ -100,14 +96,6 @@ int main(int argc, char** argv) {
     input_file >> qubit_3;
     input_file >> qubit_4;
     input_file >> qubit_5;
-
-    // TODO (bcp) DEBUG: Print the qubits:
-    // cout << qubit_0 << endl;
-    // cout << qubit_1 << endl;
-    // cout << qubit_2 << endl;
-    // cout << qubit_3 << endl;
-    // cout << qubit_4 << endl;
-    // cout << qubit_5 << endl;
 
     float* output = (float*)malloc(a.size() * sizeof(float));
 
@@ -136,12 +124,6 @@ int main(int argc, char** argv) {
 
     int threadsPerBlock = 256;
     int blocksPerGrid = (a.size() + threadsPerBlock - 1) / threadsPerBlock;
-    // printf("CUDA kernel launch with %d blocks of %d threads\n", blocksPerGrid,
-    // threadsPerBlock);
-
-    // Task1. Write the code to read in the input file and generate the expected output result of
-    // applying six single-qubit quantum gates to six different qubits in an n-qubit quantum
-    // circuit.
 
     quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_0_gpu, a_gpu, output_gpu, qubit_0,
                                                                a.size());
@@ -191,6 +173,22 @@ int main(int argc, char** argv) {
         printf("%.3f\n", output[i]);
     }
 
+    // printf("CPU version: \n");
+    quantum_simulation_cpu(U_0, a.data(), output, qubit_0, a.size());
+    memcpy(a.data(), output, a.size() * sizeof(float));
+    quantum_simulation_cpu(U_1, a.data(), output, qubit_1, a.size());
+    // memcpy(a.data(), output, a.size() * sizeof(float));
+    // quantum_simulation_cpu(U_2, a.data(), output, qubit_2, a.size());
+    // memcpy(a.data(), output, a.size() * sizeof(float));
+    // quantum_simulation_cpu(U_3, a.data(), output, qubit_3, a.size());
+    // memcpy(a.data(), output, a.size() * sizeof(float));
+    // quantum_simulation_cpu(U_4, a.data(), output, qubit_4, a.size());
+    // memcpy(a.data(), output, a.size() * sizeof(float));
+    // quantum_simulation_cpu(U_5, a.data(), output, qubit_5, a.size());
+
+    // for (int i = 0; i < a.size(); i++) {
+    //     printf("%.3f\n", output[i]);
+    // }
     cudaFree(U_0_gpu);
     cudaFree(U_1_gpu);
     cudaFree(U_2_gpu);
