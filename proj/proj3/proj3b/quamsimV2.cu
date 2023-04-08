@@ -10,28 +10,26 @@ using namespace std;
 __device__ void inline quantum_kernel(float* U, float* a, float* output, size_t qid, size_t N,
                                       int tid) {
     if (tid & qid)
-        output[tid] = U[2] * a[tid - qid] + U[3] * a[tid];
+        output[tid] = U[3] * a[tid] + U[2] * a[tid - qid];
     else
-        output[tid] = U[0] * a[tid] + U[1] * a[tid + qid];
+        output[tid] = U[1] * a[tid + qid] + U[0] * a[tid];
+    __syncthreads();
+    __syncwarp();
 }
 
-__global__ void quantum_simulation_gpu(const float* U_0, const float* U_1, const float* U_2,
-                                       const float* U_3, const float* U_4, const float* U_5,
-                                       const float* a, float* output, size_t qubit0, size_t qubit1,
-                                       size_t qubit2, size_t qubit3, size_t qubit4, size_t qubit5,
-                                       size_t N, size_t* auxillary_array) {
+__global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float* U_3, float* U_4,
+                                       float* U_5, float* a, float* output, size_t qubit0,
+                                       size_t qubit1, size_t qubit2, size_t qubit3, size_t qubit4,
+                                       size_t qubit5, size_t N, size_t* auxillary_array) {
 
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
-    // TODO: unnecessary?
-    if (tid >= N / 2) {
-        return;
-    }
-    printf("tid = %d\n", tid);
-    // For an n-qubit quantum circuit that has an initial quantum state of 2^n values, split the 2^n
-    // values into several independent fragments of size 2^6, then map each fragment to one GPU
-    // thread block. For each thread block, load the 2^6 values of the fragment from global memory
-    // to shared memory. (The reason for using 2^6 as the fragment size is because there are six
-    // single-qubit gates applied to six different qubits.)
+
+    // if (tid >= N) {
+    //     return;
+    // }
+
+    __shared__ float a_shared[64];
+    __shared__ float output_shared[64];
 
     size_t qid0 = 1 << qubit0;
     size_t qid1 = 1 << qubit1;
@@ -40,120 +38,177 @@ __global__ void quantum_simulation_gpu(const float* U_0, const float* U_1, const
     size_t qid4 = 1 << qubit4;
     size_t qid5 = 1 << qubit5;
 
-    if (tid == 0) {
-        // printf(
-        // "qubit0 = %lu, qubit1 = %lu, qubit2 = %lu, qubit3 = %lu, qubit4 = %lu, qubit5 = %lu\n",
-        // qubit0, qubit1, qubit2, qubit3, qubit4, qubit5);
-        printf("qid0 = %lu, qid1 = %lu, qid2 = %lu, qid3 = %lu, qid4 = %lu, qid5 = %lu\n", qid0,
-               qid1, qid2, qid3, qid4, qid5);
-    }
-    __shared__ float a_shared[64];
-    __shared__ float output_shared[64];
-
-    size_t t = N - 1;
-    size_t bid = blockDim.x * blockIdx.x;
-    if (tid == 0) {
-        printf("t = %lu\n", t);
-    }
-    // set t's 1s to 0s based on qids
-    size_t bitmask = qid0 | qid1 | qid2 | qid3 | qid4 | qid5;
-    t &= ~bitmask;
-
-    if (tid == 0) {
-        printf("bitmask = %lu\n", bitmask);
-        printf("t = %lu\n", t);
-    }
-
-    printf("bid = %lu\n", bid);
-
-    // based on the bid, set the t bits to 1s
-    // THIS IS ONLY FOR 128
-    if (bid < 32) {
-        t = 0;
-    } else {
-        t = 2;
-    }
+    int tid1 = tid;
+    // int tid0 = tid1 + 1;
+    quantum_kernel(U_0, a, output, qid0, N, tid1);
     __syncthreads();
     __syncwarp();
 
-    if (tid % 32 == 0) {
-        for (int i = 0; i < 64; i++) {
-            printf("auxillary_array[%d] = %lu\n", i, auxillary_array[i]);
-            a_shared[i] = a[auxillary_array[i] + t];
-        }
-    }
+    // copy output to a
+    a[tid1] = output[tid1];
+    // a[tid0] = output[tid0];
+    __syncthreads();
+    __syncwarp();
+    quantum_kernel(U_1, a, output, qid1, N, tid1);
 
     __syncthreads();
     __syncwarp();
 
-    if (tid == 0) {
-        for (int i = 0; i < 64; i++) {
-            printf("a_shared[%d] = %f\n", i, a_shared[i]);
-        }
-    }
+    // copy output to a
+    a[tid1] = output[tid1];
+    // a[tid0] = output[tid0];
     __syncthreads();
     __syncwarp();
-
-    // Apply the six single-qubit gates on each of the fragments and get the results. Similar to
-    // applying 6 gates on a 6-qubit circuit, you can split this process into 6 steps: applying
-    // the first gate to qubit 0, applying the second gate to qubit 1, applying the third gate
-    // to qubit 2, applying the fourth gate to qubit 3, applying the fifth gate to qubit 4, and
-    // applying the sixth gate to qubit 5. And for each of the steps, the computation is the
-    // same as in PA1, and here since we have 2^6 values that need to be calculated in each
-    // thread block, there will be 2^5 threads in each thread block, one thread will do one
-    // matrix multiplication
-
-    // The auxiliary array is used to store the indices of the 2^6 values that need to be
-    // calculated in each thread block.
-    // We can perform quantum simulation by using the auxiliary array to map the 2^6 values where
-    // they are stored consecutively
-
-    // Apply the first gate to qubit 0
-    __syncthreads();
-    __syncwarp();
-    size_t tid_0 = threadIdx.x * 2;
-    size_t tid_1 = threadIdx.x * 2 + 1;
-
-    if (qid0&)
-
-        __syncthreads();
-    __syncwarp();
-
-    // copy output_shared back to a_shared
-    a_shared[tid_0] = output_shared[tid_0];
-    a_shared[tid_1] = output_shared[tid_1];
+    quantum_kernel(U_2, a, output, qid2, N, tid1);
 
     __syncthreads();
     __syncwarp();
 
-    // if (tid % 32 == 0) {
+    // copy output to a
+    a[tid1] = output[tid1];
+    // a[tid0] = output[tid0];
+    __syncthreads();
+    __syncwarp();
+    quantum_kernel(U_3, a, output, qid3, N, tid1);
+
+    __syncthreads();
+    __syncwarp();
+
+    // copy output to a
+    a[tid1] = output[tid1];
+    // a[tid0] = output[tid0];
+    __syncthreads();
+    __syncwarp();
+    quantum_kernel(U_4, a, output, qid4, N, tid1);
+
+    __syncthreads();
+    __syncwarp();
+
+    // copy output to a
+    a[tid1] = output[tid1];
+    // a[tid0] = output[tid0];
+    __syncthreads();
+    __syncwarp();
+    quantum_kernel(U_5, a, output, qid5, N, tid1);
+
+    __syncthreads();
+    __syncwarp();
+
+    // if (tid1 == 0) {
+    //     // printf(
+    //     // "qubit0 = %lu, qubit1 = %lu, qubit2 = %lu, qubit3 = %lu, qubit4 = %lu, qubit5 =
+    //     %lu\n",
+    //     // qubit0, qubit1, qubit2, qubit3, qubit4, qubit5);
+    //     printf("qid0 = %lu, qid1 = %lu, qid2 = %lu, qid3 = %lu, qid4 = %lu, qid5 = %lu\n", qid0,
+    //            qid1, qid2, qid3, qid4, qid5);
+    // }
+    // __shared__ float a_shared[64];
+    // __shared__ float output_shared[64];
+
+    // size_t t = N - 1;
+    // size_t bid = blockDim.x * blockIdx.x;
+    // if (tid1 == 0) {
+    //     printf("t = %lu\n", t);
+    // }
+    // // set t's 1s to 0s based on qids
+    // size_t bitmask = qid0 | qid1 | qid2 | qid3 | qid4 | qid5;
+    // t &= ~bitmask;
+
+    // if (tid1 == 0) {
+    //     printf("bitmask = %lu\n", bitmask);
+    //     printf("t = %lu\n", t);
+    // }
+
+    // printf("bid = %lu\n", bid);
+
+    // // based on the bid, set the t bits to 1s
+    // // THIS IS ONLY FOR 128
+    // if (bid < 32) {
+    //     t = 0;
+    // } else {
+    //     t = 2;
+    // }
+    // __syncthreads();
+    // __syncwarp();
+
+    // if (tid1 % 32 == 0) {
     //     for (int i = 0; i < 64; i++) {
-    //         printf("a_shared[%d] = %f\n", i, a_shared[i]);
-    //         printf("output_shared[%d] = %f\n", i, output_shared[i]);
+    //         printf("auxillary_array[%d] = %lu\n", i, auxillary_array[i]);
+    //         a_shared[i] = a[auxillary_array[i] + t];
     //     }
     // }
 
-    // printf("%f * %f = %f\n", U_1[0], a_shared[tid_0], U_1[0] * a_shared[tid_0]);
-    // printf("%f * %f = %f\n", U_1[1], a_shared[tid_1], U_1[1] * a_shared[tid_1]);
-    // printf("%f * %f = %f\n", U_1[2], a_shared[tid_0], U_1[2] * a_shared[tid_0]);
-    // printf("%f * %f = %f\n", U_1[3], a_shared[tid_1], U_1[3] * a_shared[tid_1]);
+    // __syncthreads();
+    // __syncwarp();
 
-    if (tid0 & qid0) {
-        output_shared[tid_0] = U_1[0] * a_shared[tid_0] + U_1[1] * a_shared[tid_1];
-    }
-    output_shared[tid_0] = U_1[0] * a_shared[tid_0] + U_1[1] * a_shared[tid_1];
-    output_shared[tid_1] = U_1[2] * a_shared[tid_0] + U_1[3] * a_shared[tid_1];
+    // if (tid1 == 0) {
+    //     for (int i = 0; i < 64; i++) {
+    //         printf("a_shared[%d] = %f\n", i, a_shared[i]);
+    //     }
+    // }
+    // __syncthreads();
+    // __syncwarp();
 
-    // output_shared[tid_0] = U_2[0] * a_shared[tid_0] + U_2[1] * a_shared[tid_1];
-    // output_shared[tid_1] = U_2[2] * a_shared[tid_0] + U_2[3] * a_shared[tid_1];
+    // // Apply the six single-qubit gates on each of the fragments and get the results. Similar to
+    // // applying 6 gates on a 6-qubit circuit, you can split this process into 6 steps: applying
+    // // the first gate to qubit 0, applying the second gate to qubit 1, applying the third gate
+    // // to qubit 2, applying the fourth gate to qubit 3, applying the fifth gate to qubit 4, and
+    // // applying the sixth gate to qubit 5. And for each of the steps, the computation is the
+    // // same as in PA1, and here since we have 2^6 values that need to be calculated in each
+    // // thread block, there will be 2^5 threads in each thread block, one thread will do one
+    // // matrix multiplication
 
-    __syncthreads();
-    __syncwarp();
-    // copy back output_shared to output
-    output[auxillary_array[tid_0] + t] = output_shared[tid_0];
-    output[auxillary_array[tid_1] + t] = output_shared[tid_1];
-    __syncthreads();
-    __syncwarp();
+    // // The auxiliary array is used to store the indices of the 2^6 values that need to be
+    // // calculated in each thread block.
+    // // We can perform quantum simulation by using the auxiliary array to map the 2^6 values where
+    // // they are stored consecutively
+
+    // // Apply the first gate to qubit 0
+    // __syncthreads();
+    // __syncwarp();
+    // size_t tid_0 = threadIdx.x * 2;
+    // size_t tid_1 = threadIdx.x * 2 + 1;
+
+    // if (qid0&)
+
+    //     __syncthreads();
+    // __syncwarp();
+
+    // // copy output_shared back to a_shared
+    // a_shared[tid_0] = output_shared[tid_0];
+    // a_shared[tid_1] = output_shared[tid_1];
+
+    // __syncthreads();
+    // __syncwarp();
+
+    // // if (tid1 % 32 == 0) {
+    // //     for (int i = 0; i < 64; i++) {
+    // //         printf("a_shared[%d] = %f\n", i, a_shared[i]);
+    // //         printf("output_shared[%d] = %f\n", i, output_shared[i]);
+    // //     }
+    // // }
+
+    // // printf("%f * %f = %f\n", U_1[0], a_shared[tid_0], U_1[0] * a_shared[tid_0]);
+    // // printf("%f * %f = %f\n", U_1[1], a_shared[tid_1], U_1[1] * a_shared[tid_1]);
+    // // printf("%f * %f = %f\n", U_1[2], a_shared[tid_0], U_1[2] * a_shared[tid_0]);
+    // // printf("%f * %f = %f\n", U_1[3], a_shared[tid_1], U_1[3] * a_shared[tid_1]);
+
+    // if (tid0 & qid0) {
+    //     output_shared[tid_0] = U_1[0] * a_shared[tid_0] + U_1[1] * a_shared[tid_1];
+    // }
+    // output_shared[tid_0] = U_1[0] * a_shared[tid_0] + U_1[1] * a_shared[tid_1];
+    // output_shared[tid_1] = U_1[2] * a_shared[tid_0] + U_1[3] * a_shared[tid_1];
+
+    // // output_shared[tid_0] = U_2[0] * a_shared[tid_0] + U_2[1] * a_shared[tid_1];
+    // // output_shared[tid_1] = U_2[2] * a_shared[tid_0] + U_2[3] * a_shared[tid_1];
+
+    // __syncthreads();
+    // __syncwarp();
+    // // copy back output_shared to output
+    // output[auxillary_array[tid_0] + t] = output_shared[tid_0];
+    // output[auxillary_array[tid_1] + t] = output_shared[tid_1];
+    // __syncthreads();
+    // __syncwarp();
     return;
 }
 
@@ -217,12 +272,12 @@ int main(int argc, char** argv) {
     input_file >> qubit_5;
 
     // TODO (bcp) DEBUG: Print the qubits:
-    cout << qubit_0 << endl;
-    cout << qubit_1 << endl;
-    cout << qubit_2 << endl;
-    cout << qubit_3 << endl;
-    cout << qubit_4 << endl;
-    cout << qubit_5 << endl;
+    // cout << qubit_0 << endl;
+    // cout << qubit_1 << endl;
+    // cout << qubit_2 << endl;
+    // cout << qubit_3 << endl;
+    // cout << qubit_4 << endl;
+    // cout << qubit_5 << endl;
 
     float* output = (float*)malloc(a.size() * sizeof(float));
 
@@ -251,8 +306,8 @@ int main(int argc, char** argv) {
 
     int threadsPerBlock = 32;
     int blocksPerGrid = (a.size() + threadsPerBlock - 1) / threadsPerBlock;
-    cout << "Blocks per grid: " << blocksPerGrid << endl;
-    cout << "Threads per block: " << threadsPerBlock << endl;
+    // cout << "Blocks per grid: " << blocksPerGrid << endl;
+    // cout << "Threads per block: " << threadsPerBlock << endl;
 
     /*
     (const float* U_0, const float* U_1, const float* U_2,
@@ -261,12 +316,12 @@ int main(int argc, char** argv) {
     qubit1, size_t qubit2, size_t qubit3, size_t qubit4, size_t qubit5, size_t N) {
     */
 
-    cout << qubit_0 << endl;
-    cout << qubit_1 << endl;
-    cout << qubit_2 << endl;
-    cout << qubit_3 << endl;
-    cout << qubit_4 << endl;
-    cout << qubit_5 << endl;
+    // cout << qubit_0 << endl;
+    // cout << qubit_1 << endl;
+    // cout << qubit_2 << endl;
+    // cout << qubit_3 << endl;
+    // cout << qubit_4 << endl;
+    // cout << qubit_5 << endl;
 
     size_t* auxillary_array = (size_t*)malloc(64 * sizeof(size_t));
     size_t* auxillary_array_gpu;
