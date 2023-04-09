@@ -48,14 +48,12 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
             a_shared[idx] = U[0] * x0 + U[1] * x1;
             a_shared[idx + gate_offset] = U[2] * x0 + U[3] * x1;
         } else {
-            idx++;
-            x0 = a_shared[idx - gate_offset];
-            x1 = a_shared[idx];
+            x0 = a_shared[idx - gate_offset + 1];
+            x1 = a_shared[idx + 1];
 
-            a_shared[idx - gate_offset] = U[0] * x0 + U[1] * x1;
-            a_shared[idx] = U[2] * x0 + U[3] * x1;
+            a_shared[idx - gate_offset + 1] = U[0] * x0 + U[1] * x1;
+            a_shared[idx + 1] = U[2] * x0 + U[3] * x1;
         }
-        idx = threadIdx.x * 2;
         __syncthreads();
         __syncwarp();
     }
