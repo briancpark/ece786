@@ -26,7 +26,7 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
     __shared__ float a_shared[FRAGMENT_SIZE];
     __shared__ float output_shared[FRAGMENT_SIZE];
 
-    printf("num_fragments: %d\n", num_fragments);
+    // printf("num_fragments: %d\n", num_fragments);
 
     // Load the fragment from global memory to shared memory
 
@@ -35,22 +35,32 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
     if (blockIdx.x) {
         offset = 1 << offsets[blockIdx.x - 1];
     }
-    printf("blockIdx.x: %d\n", blockIdx.x);
-    printf("offset: %d\n", offset);
+    // printf("blockIdx.x: %d\n", blockIdx.x);
+    // printf("offset: %d\n", offset);
+    // if (tid == 0) {
+    //     for (int i = 0; i < 64; i++) {
+    //         printf("auxillary_array[%llu]: %llu\n", i, auxillary_array[i]);
+    //     }
+    // }
 
-    for (int i = threadIdx.x * 2; i < FRAGMENT_SIZE; i += blockDim.x * 2) {
-        a_shared[i] = a[i + offset];
-        a_shared[i + 1] = a[i + 1 + offset];
-    }
+    size_t i = threadIdx.x * 2;
+    size_t gi = threadIdx.x * 2;
+    printf("i: %lu, tid: %d, offset: %lu, auxillary_array[%lu]: %lu\n", i, tid, offset,
+           threadIdx.x * 2, auxillary_array[(threadIdx.x * 2)] + offset);
+    printf("i + 1: %lu, tid: %d, offset: %lu, auxillary_array[%lu]: %lu\n", i + 1, tid, offset,
+           (threadIdx.x * 2) + 1, auxillary_array[(threadIdx.x * 2) + 1] + offset);
+    a_shared[gi] = a[auxillary_array[gi] + offset];
+    a_shared[gi + 1] = a[auxillary_array[gi + 1] + offset];
+
     __syncthreads();
     __syncwarp();
-    if (tid % 32 == 0) {
-        for (int i = 0; i < FRAGMENT_SIZE; i++) {
-            printf("a_shared[%d] = %f\n", i, a_shared[i]);
-        }
-    }
-    __syncthreads();
-    __syncwarp();
+    // if (tid % 32 == 0) {
+    //     for (int i = 0; i < FRAGMENT_SIZE; i++) {
+    //         printf("a_shared[%d] = %f\n", i, a_shared[i]);
+    //     }
+    // }
+    // __syncthreads();
+    // __syncwarp();
 
     __syncthreads();
     size_t qid0 = 1 << qubit0;
@@ -67,29 +77,62 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
     __syncwarp();
     float* Us[6] = {U_0, U_1, U_2, U_3, U_4, U_5};
     size_t qids[6] = {qid0, qid1, qid2, qid3, qid4, qid5};
-    int i = threadIdx.x * 2;
 
+    printf("gi: %d\n", gi);
     __syncthreads();
     __syncwarp();
-    for (int gate = 0; gate < 6; gate++) {
+    for (size_t gate = 0; gate < 1; gate++) {
         float* U = Us[gate];
+        size_t qid = qids[gate];
+        size_t gate_offset = 1 << gate;
+        printf("gate: %lu, qid: %lu, gate_offset: %lu\n", gate, qid, gate_offset);
 
-        float x0 = a_shared[i];
-        float x1 = a_shared[i + 1];
+        printf("gi=%lu & gate=%lu: %lu\n", gi, gate, gi & gate);
+
+        if ((gi & gate_offset) == 0) {
+            printf("gi=%lu + gate_offset=%lu: %lu\n", gi, gate_offset, gi + gate_offset);
+
+            printf("gi=%lu, gi + gate_offset=%lu\n", gi, gi + gate_offset);
+            float x0 = a_shared[gi];
+            float x1 = a_shared[gi + gate_offset];
+
+            // float y0 = a_shared[gi + 1];
+            // float y1 = a_shared[gi + gate_offset + 1];
+
+            a_shared[gi] = U[0] * x0 + U[2] * x1;
+            a_shared[gi + gate_offset] = U[1] * x0 + U[3] * x1;
+
+            // a_shared[gi + 1] = U[0] * y0 + U[2] * y1;
+            // a_shared[gi + gate_offset + 1] = U[1] * y0 + U[3] * y1;
+        }
+        //  else {
+        //     printf("gi=%lu - gate_offset=%lu: %lu\n", gi, gate_offset, gi - gate_offset);
+        //     float x0 = a_shared[gi - gate_offset];
+        //     float x1 = a_shared[gi];
+
+        //     // float y0 = a_shared[gi - gate_offset + 1];
+        //     // float y1 = a_shared[gi + 1];
+
+        //     a_shared[gi - gate_offset] = U[0] * x0 + U[2] * x1;
+        //     a_shared[gi] = U[1] * x0 + U[3] * x1;
+
+        //     // a_shared[gi - gate_offset + 1] = U[0] * y0 + U[2] * y1;
+        //     // a_shared[gi + 1] = U[1] * y0 + U[3] * y1;
+        // }
+
         __syncthreads();
         __syncwarp();
-        a_shared[i] = U[0] * x0 + U[2] * x1;
-        a_shared[i + 1] = U[1] * x0 + U[3] * x1;
-
-        __syncthreads();
-        __syncwarp();
+        printf("offset: %lu, tid: %d, gi: %\n", offset, tid, gi);
+        printf("a_shared[%d] = %f, tid * 2 + offset= %d\n", gi, a_shared[gi], tid * 2 + offset);
+        printf("a_shared[%d] = %f, tid * 2 + offset + 1= %d\n", gi + 1, a_shared[gi + 1],
+               tid * 2 + offset + 1);
     }
 
     __syncthreads();
     __syncwarp();
     // Store the fragment from shared memory to global memory
-    output[tid * 2 + offset] = a_shared[i];
-    output[(tid * 2) + 1 + offset] = a_shared[i + 1];
+    output[auxillary_array[gi] + offset] = a_shared[gi];
+    output[auxillary_array[gi + 1] + offset] = a_shared[gi + 1];
 
     __syncthreads();
     __syncwarp();
@@ -175,6 +218,7 @@ int main(int argc, char** argv) {
 
     size_t* auxillary_array = (size_t*)malloc(64 * sizeof(size_t));
     size_t* auxillary_array_gpu;
+    cudaMalloc(&auxillary_array_gpu, 64 * sizeof(size_t));
 
     size_t qubits[6] = {qubit_0, qubit_1, qubit_2, qubit_3, qubit_4, qubit_5};
 
@@ -191,36 +235,36 @@ int main(int argc, char** argv) {
         auxillary_array[i] = sum;
     }
 
-    cudaMalloc(&auxillary_array_gpu, 64 * sizeof(size_t));
     cudaMemcpy(auxillary_array_gpu, auxillary_array, 64 * sizeof(size_t), cudaMemcpyHostToDevice);
 
     // print the contents of the auxillary array in binary
-    for (int i = 0; i < 64; i++) {
-        // binary
-        cout << bitset<6>(auxillary_array[i]) << endl;
-    }
+    // for (int i = 0; i < 64; i++) {
+    //     // binary
+    //     // cout << bitset<6>(auxillary_array[i]) << endl;
+    //     cout << "auxillary_array[" << i << "]: " << auxillary_array[i] << endl;
+    // }
 
     // length of offset is determined by log2(a.size()) - 6
     size_t offsets_len = (size_t)log2(a.size()) - 6;
     size_t* offsets = (size_t*)malloc(offsets_len * sizeof(size_t));
     size_t* offsets_gpu;
     cudaMalloc(&offsets_gpu, offsets_len * sizeof(size_t));
-    cout << "offsets_len: " << offsets_len << endl;
+    // cout << "offsets_len: " << offsets_len << endl;
 
     size_t bitmask = 0;
     // set the bitmask to 1 at the qubit indices
     for (int i = 0; i < 6; i++) {
         bitmask |= (1 << qubits[i]);
-        cout << "bitmask: " << bitset<16>(bitmask) << endl;
+        // cout << "bitmask: " << bitset<16>(bitmask) << endl;
     }
 
     // Determine the bits that are set to 0 in the bitmask and store them in the offsets array
     int bitid = 0;
-    cout << "log(a.size()): " << log(a.size()) << endl;
+    // cout << "log(a.size()): " << log(a.size()) << endl;
     for (int i = 0; i < log2(a.size()); i++) {
-        cout << "bitmask: " << bitset<16>(bitmask) << endl;
-        cout << "i: " << i << endl;
-        cout << "bitmask | (1 << i): " << bitset<16>(bitmask | (1 << i)) << endl;
+        // cout << "bitmask: " << bitset<16>(bitmask) << endl;
+        // cout << "i: " << i << endl;
+        // cout << "bitmask | (1 << i): " << bitset<16>(bitmask | (1 << i)) << endl;
         if ((bitmask | (1 << i)) != bitmask) {
             offsets[bitid] = i;
             bitid++;
@@ -228,9 +272,9 @@ int main(int argc, char** argv) {
     }
 
     // print the contents of the offsets array
-    for (int i = 0; i < offsets_len; i++) {
-        cout << "offsets[" << i << "]: " << offsets[i] << endl;
-    }
+    // for (int i = 0; i < offsets_len; i++) {
+    //     cout << "offsets[" << i << "]: " << offsets[i] << endl;
+    // }
 
     cudaMemcpy(offsets_gpu, offsets, offsets_len * sizeof(size_t), cudaMemcpyHostToDevice);
 
