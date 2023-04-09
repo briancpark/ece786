@@ -81,7 +81,7 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
     printf("gi: %d\n", gi);
     __syncthreads();
     __syncwarp();
-    for (size_t gate = 0; gate < 1; gate++) {
+    for (size_t gate = 0; gate < 6; gate++) {
         float* U = Us[gate];
         size_t qid = qids[gate];
         size_t gate_offset = 1 << gate;
@@ -90,44 +90,52 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
         printf("gi=%lu & gate=%lu: %lu\n", gi, gate, gi & gate);
 
         if ((gi & gate_offset) == 0) {
-            printf("gi=%lu + gate_offset=%lu: %lu\n", gi, gate_offset, gi + gate_offset);
-
-            printf("gi=%lu, gi + gate_offset=%lu\n", gi, gi + gate_offset);
+            printf("gi: %lu, gate_offset: %lu gi + gateoffset: %lu, gi: %lu\n", gi, gate_offset,
+                   gi + gate_offset, gi);
             float x0 = a_shared[gi];
             float x1 = a_shared[gi + gate_offset];
 
-            // float y0 = a_shared[gi + 1];
-            // float y1 = a_shared[gi + gate_offset + 1];
+            a_shared[gi] = U[0] * x0 + U[2] * x1;
+            a_shared[gi + gate_offset] = U[1] * x0 + U[3] * x1;
+        } else if (gate_offset == 1 && (gate_offset % 2) == 1) {
+            printf("HITHIT\n");
+            printf("gi: %lu, gate_offset: %lu gi - gateoffset: %lu, gi: %lu\n", gi, gate_offset,
+                   gi - gate_offset, gi);
+            float x0 = a_shared[gi - gate_offset];
+            float x1 = a_shared[gi];
+
+            a_shared[gi - gate_offset] = U[0] * x0 + U[2] * x1;
+            a_shared[gi] = U[1] * x0 + U[3] * x1;
+        } else if ((gi & gate_offset) == 0 && (gate_offset % 2) == 1) {
+            printf("odds0\n");
+            gi++;
+            printf("gi: %lu, gate_offset: %lu gi + gateoffset: %lu, gi: %lu\n", gi, gate_offset,
+                   gi + gate_offset, gi);
+            float x0 = a_shared[gi];
+            float x1 = a_shared[gi + gate_offset];
 
             a_shared[gi] = U[0] * x0 + U[2] * x1;
             a_shared[gi + gate_offset] = U[1] * x0 + U[3] * x1;
+        } else {
+            printf("odds1\n");
+            gi++;
+            printf("gi: %lu, gate_offset: %lu gi - gateoffset: %lu, gi: %lu\n", gi, gate_offset,
+                   gi - gate_offset, gi);
+            float x0 = a_shared[gi - gate_offset];
+            float x1 = a_shared[gi];
 
-            // a_shared[gi + 1] = U[0] * y0 + U[2] * y1;
-            // a_shared[gi + gate_offset + 1] = U[1] * y0 + U[3] * y1;
+            a_shared[gi - gate_offset] = U[0] * x0 + U[2] * x1;
+            a_shared[gi] = U[1] * x0 + U[3] * x1;
         }
-        //  else {
-        //     printf("gi=%lu - gate_offset=%lu: %lu\n", gi, gate_offset, gi - gate_offset);
-        //     float x0 = a_shared[gi - gate_offset];
-        //     float x1 = a_shared[gi];
-
-        //     // float y0 = a_shared[gi - gate_offset + 1];
-        //     // float y1 = a_shared[gi + 1];
-
-        //     a_shared[gi - gate_offset] = U[0] * x0 + U[2] * x1;
-        //     a_shared[gi] = U[1] * x0 + U[3] * x1;
-
-        //     // a_shared[gi - gate_offset + 1] = U[0] * y0 + U[2] * y1;
-        //     // a_shared[gi + 1] = U[1] * y0 + U[3] * y1;
-        // }
-
+        gi = threadIdx.x * 2;
         __syncthreads();
         __syncwarp();
-        printf("offset: %lu, tid: %d, gi: %\n", offset, tid, gi);
-        printf("a_shared[%d] = %f, tid * 2 + offset= %d\n", gi, a_shared[gi], tid * 2 + offset);
-        printf("a_shared[%d] = %f, tid * 2 + offset + 1= %d\n", gi + 1, a_shared[gi + 1],
-               tid * 2 + offset + 1);
+        // printf("offset: %lu, tid: %d, gi: %\n", offset, tid, gi);
+        // printf("a_shared[%d] = %f, tid * 2 + offset= %d\n", gi, a_shared[gi], tid * 2 + offset);
+        // printf("a_shared[%d] = %f, tid * 2 + offset + 1= %d\n", gi + 1, a_shared[gi + 1],
+        //        tid * 2 + offset + 1);
     }
-
+    printf("tid: %d DONE\n", tid);
     __syncthreads();
     __syncwarp();
     // Store the fragment from shared memory to global memory
