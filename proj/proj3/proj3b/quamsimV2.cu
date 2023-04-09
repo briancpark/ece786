@@ -44,15 +44,15 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
             float x0 = a_shared[gi];
             float x1 = a_shared[gi + gate_offset];
 
-            a_shared[gi] = U[0] * x0 + U[2] * x1;
-            a_shared[gi + gate_offset] = U[1] * x0 + U[3] * x1;
+            a_shared[gi] = U[0] * x0 + U[1] * x1;
+            a_shared[gi + gate_offset] = U[2] * x0 + U[3] * x1;
         } else {
             gi++;
             float x0 = a_shared[gi - gate_offset];
             float x1 = a_shared[gi];
 
-            a_shared[gi - gate_offset] = U[0] * x0 + U[2] * x1;
-            a_shared[gi] = U[1] * x0 + U[3] * x1;
+            a_shared[gi - gate_offset] = U[0] * x0 + U[1] * x1;
+            a_shared[gi] = U[2] * x0 + U[3] * x1;
         }
         gi = threadIdx.x * 2;
         __syncthreads();
@@ -62,8 +62,6 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
     // Store the fragment from shared memory to global memory
     output[auxillary_array[gi] + offset] = a_shared[gi];
     output[auxillary_array[gi + 1] + offset] = a_shared[gi + 1];
-    __syncthreads();
-    __syncwarp();
     return;
 }
 

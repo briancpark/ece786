@@ -5,6 +5,7 @@ import os
 import sys
 
 
+# make a random symmetric 2x2 matrix
 U_0 = np.random.rand(4)
 U_1 = np.random.rand(4)
 U_2 = np.random.rand(4)
@@ -12,8 +13,9 @@ U_3 = np.random.rand(4)
 U_4 = np.random.rand(4)
 U_5 = np.random.rand(4)
 
+
 # choose a number betweeen 7 and 30
-qubits = np.random.randint(7, 14)
+qubits = np.random.randint(7, 10)
 
 a = np.random.rand(2 ** qubits)
 
