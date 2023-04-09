@@ -26,7 +26,6 @@ __global__ void device_to_device_memcpy(float* a, float* b, int N) {
 
     b[tid] = a[tid];
     __syncthreads();
-    __syncwarp();
     return;
 }
 
@@ -44,7 +43,6 @@ __global__ void quantum_simulation_gpu(const float* U, const float* a, float* ou
     else
         output[tid] = U[0] * a[tid] + U[1] * a[tid + qid];
     __syncthreads();
-    __syncwarp();
 }
 
 int main(int argc, char** argv) {

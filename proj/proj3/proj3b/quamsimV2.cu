@@ -25,43 +25,44 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
     __shared__ float a_shared[FRAGMENT_SIZE];
 
     // Load the fragment from global memory to shared memory
-
     size_t offset = offsets[blockIdx.x];
 
-    size_t gi = threadIdx.x * 2;
+    size_t idx = threadIdx.x * 2;
 
-    a_shared[gi] = a[auxillary_array[gi] + offset];
-    a_shared[gi + 1] = a[auxillary_array[gi + 1] + offset];
+    a_shared[idx] = a[auxillary_array[idx] + offset];
+    a_shared[idx + 1] = a[auxillary_array[idx + 1] + offset];
 
     float* Us[6] = {U_0, U_1, U_2, U_3, U_4, U_5};
     __syncthreads();
     __syncwarp();
+
+    register float x0, x1;
     for (size_t gate = 0; gate < 6; gate++) {
         float* U = Us[gate];
         size_t gate_offset = 1 << gate;
 
-        if ((gi & gate_offset) == 0) {
-            float x0 = a_shared[gi];
-            float x1 = a_shared[gi + gate_offset];
+        if ((idx & gate_offset) == 0) {
+            x0 = a_shared[idx];
+            x1 = a_shared[idx + gate_offset];
 
-            a_shared[gi] = U[0] * x0 + U[1] * x1;
-            a_shared[gi + gate_offset] = U[2] * x0 + U[3] * x1;
+            a_shared[idx] = U[0] * x0 + U[1] * x1;
+            a_shared[idx + gate_offset] = U[2] * x0 + U[3] * x1;
         } else {
-            gi++;
-            float x0 = a_shared[gi - gate_offset];
-            float x1 = a_shared[gi];
+            idx++;
+            x0 = a_shared[idx - gate_offset];
+            x1 = a_shared[idx];
 
-            a_shared[gi - gate_offset] = U[0] * x0 + U[1] * x1;
-            a_shared[gi] = U[2] * x0 + U[3] * x1;
+            a_shared[idx - gate_offset] = U[0] * x0 + U[1] * x1;
+            a_shared[idx] = U[2] * x0 + U[3] * x1;
         }
-        gi = threadIdx.x * 2;
+        idx = threadIdx.x * 2;
         __syncthreads();
         __syncwarp();
     }
 
     // Store the fragment from shared memory to global memory
-    output[auxillary_array[gi] + offset] = a_shared[gi];
-    output[auxillary_array[gi + 1] + offset] = a_shared[gi + 1];
+    output[auxillary_array[idx] + offset] = a_shared[idx];
+    output[auxillary_array[idx + 1] + offset] = a_shared[idx + 1];
     return;
 }
 
