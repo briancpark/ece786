@@ -1,5 +1,3 @@
-# generate random input for proj3b
-
 import numpy as np
 import os
 import sys
