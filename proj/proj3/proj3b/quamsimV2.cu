@@ -33,10 +33,7 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
     a_shared[gi] = a[auxillary_array[gi] + offset];
     a_shared[gi + 1] = a[auxillary_array[gi + 1] + offset];
 
-    __syncthreads();
-    __syncwarp();
     float* Us[6] = {U_0, U_1, U_2, U_3, U_4, U_5};
-
     __syncthreads();
     __syncwarp();
     for (size_t gate = 0; gate < 6; gate++) {
@@ -44,19 +41,6 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
         size_t gate_offset = 1 << gate;
 
         if ((gi & gate_offset) == 0) {
-            float x0 = a_shared[gi];
-            float x1 = a_shared[gi + gate_offset];
-
-            a_shared[gi] = U[0] * x0 + U[2] * x1;
-            a_shared[gi + gate_offset] = U[1] * x0 + U[3] * x1;
-        } else if (gate_offset == 1 && (gate_offset % 2) == 1) {
-            float x0 = a_shared[gi - gate_offset];
-            float x1 = a_shared[gi];
-
-            a_shared[gi - gate_offset] = U[0] * x0 + U[2] * x1;
-            a_shared[gi] = U[1] * x0 + U[3] * x1;
-        } else if ((gi & gate_offset) == 0 && (gate_offset % 2) == 1) {
-            gi++;
             float x0 = a_shared[gi];
             float x1 = a_shared[gi + gate_offset];
 
@@ -74,13 +58,10 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
         __syncthreads();
         __syncwarp();
     }
-    __syncthreads();
-    __syncwarp();
 
     // Store the fragment from shared memory to global memory
     output[auxillary_array[gi] + offset] = a_shared[gi];
     output[auxillary_array[gi + 1] + offset] = a_shared[gi + 1];
-
     __syncthreads();
     __syncwarp();
     return;
@@ -196,8 +177,6 @@ int main(int argc, char** argv) {
 
     // Determine the bits that are set to 0 in the bitmask and store them in the offsets array
     int bitid = 0;
-
-    // set offsets to the value that is not in the bitmask, there can be multiple bits
     for (int i = 0; i < a.size(); i++) {
         if ((i & bitmask) == 0) {
             offsets[bitid] = i;
@@ -227,6 +206,7 @@ int main(int argc, char** argv) {
     cudaFree(U_3_gpu);
     cudaFree(U_4_gpu);
     cudaFree(U_5_gpu);
+    free(offsets);
     free(U_0);
     free(U_1);
     free(U_2);
