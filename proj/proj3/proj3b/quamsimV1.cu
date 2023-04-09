@@ -127,10 +127,9 @@ int main(int argc, char** argv) {
 
     quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_0_gpu, a_gpu, output_gpu, qubit_0,
                                                                a.size());
-    // device_to_device_memcpy<<<blocksPerGrid, threadsPerBlock>>>(output_gpu, a_gpu, a.size());
-    // quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_1_gpu, a_gpu, output_gpu,
-    // qubit_1,
-    //                                                            a.size());
+    device_to_device_memcpy<<<blocksPerGrid, threadsPerBlock>>>(output_gpu, a_gpu, a.size());
+    quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_1_gpu, a_gpu, output_gpu, qubit_1,
+                                                               a.size());
     // device_to_device_memcpy<<<blocksPerGrid, threadsPerBlock>>>(output_gpu, a_gpu, a.size());
     // quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_2_gpu, a_gpu, output_gpu,
     // qubit_2,
