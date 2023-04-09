@@ -39,10 +39,8 @@ __global__ void quantum_simulation_gpu(const float* U, const float* a, float* ou
 
     if (tid & qid == 0) {
         output[tid] = U[0] * a[tid] + U[1] * a[tid + qid];
-        // printf("%f * %f = %f\n", U[0], a[tid], U[0] * a[tid]);
     } else {
         output[tid] = U[2] * a[tid - qid] + U[3] * a[tid];
-        // printf("%f * %f = %f\n", U[2], a[tid - qid], U[2] * a[tid - qid]);
     }
 
     __syncthreads();
@@ -130,45 +128,18 @@ int main(int argc, char** argv) {
     device_to_device_memcpy<<<blocksPerGrid, threadsPerBlock>>>(output_gpu, a_gpu, a.size());
     quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_1_gpu, a_gpu, output_gpu, qubit_1,
                                                                a.size());
-    // device_to_device_memcpy<<<blocksPerGrid, threadsPerBlock>>>(output_gpu, a_gpu, a.size());
-    // quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_2_gpu, a_gpu, output_gpu,
-    // qubit_2,
-    //                                                            a.size());
-    // device_to_device_memcpy<<<blocksPerGrid, threadsPerBlock>>>(output_gpu, a_gpu, a.size());
-    // quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_3_gpu, a_gpu, output_gpu,
-    // qubit_3,
-    //                                                            a.size());
-    // device_to_device_memcpy<<<blocksPerGrid, threadsPerBlock>>>(output_gpu, a_gpu, a.size());
-    // quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_4_gpu, a_gpu, output_gpu,
-    // qubit_4,
-    //                                                            a.size());
-    // device_to_device_memcpy<<<blocksPerGrid, threadsPerBlock>>>(output_gpu, a_gpu, a.size());
-    // quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_5_gpu, a_gpu, output_gpu,
-    // qubit_5,
-    //                                                            a.size());
-
-    // #ifdef BENCHMARK
-    //     cudaEvent_t start, stop;
-    //     float milliseconds = 0;
-    //     double average = 0;
-    //     for (int i = 0; i < 100; i++) {
-    //         cudaEventCreate(&start);
-    //         cudaEventCreate(&stop);
-    //         cudaEventRecord(start);
-    // #endif
-    //         quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_gpu, a_gpu,
-    //         output_gpu, qubit,
-    //                                                                    a.size());
-    // #ifdef BENCHMARK
-    //         cudaEventRecord(stop);
-    //         cudaEventSynchronize(stop);
-
-    //         cudaEventElapsedTime(&milliseconds, start, stop);
-    //         average += milliseconds;
-    //     }
-    //     cout << "Time taken on average: " << average / 100 << " ms" << endl;
-    //     cout << "GFLOPs: " << FLOPs / (average / 100) / 1000 << endl;
-    // #endif
+    device_to_device_memcpy<<<blocksPerGrid, threadsPerBlock>>>(output_gpu, a_gpu, a.size());
+    quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_2_gpu, a_gpu, output_gpu, qubit_2,
+                                                               a.size());
+    device_to_device_memcpy<<<blocksPerGrid, threadsPerBlock>>>(output_gpu, a_gpu, a.size());
+    quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_3_gpu, a_gpu, output_gpu, qubit_3,
+                                                               a.size());
+    device_to_device_memcpy<<<blocksPerGrid, threadsPerBlock>>>(output_gpu, a_gpu, a.size());
+    quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_4_gpu, a_gpu, output_gpu, qubit_4,
+                                                               a.size());
+    device_to_device_memcpy<<<blocksPerGrid, threadsPerBlock>>>(output_gpu, a_gpu, a.size());
+    quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_5_gpu, a_gpu, output_gpu, qubit_5,
+                                                               a.size());
 
     cudaMemcpy(output, output_gpu, a.size() * sizeof(float), cudaMemcpyDeviceToHost);
     cudaDeviceSynchronize();
@@ -177,22 +148,6 @@ int main(int argc, char** argv) {
         printf("%.3f\n", output[i]);
     }
 
-    // printf("CPU version: \n");
-    quantum_simulation_cpu(U_0, a.data(), output, qubit_0, a.size());
-    memcpy(a.data(), output, a.size() * sizeof(float));
-    quantum_simulation_cpu(U_1, a.data(), output, qubit_1, a.size());
-    // memcpy(a.data(), output, a.size() * sizeof(float));
-    // quantum_simulation_cpu(U_2, a.data(), output, qubit_2, a.size());
-    // memcpy(a.data(), output, a.size() * sizeof(float));
-    // quantum_simulation_cpu(U_3, a.data(), output, qubit_3, a.size());
-    // memcpy(a.data(), output, a.size() * sizeof(float));
-    // quantum_simulation_cpu(U_4, a.data(), output, qubit_4, a.size());
-    // memcpy(a.data(), output, a.size() * sizeof(float));
-    // quantum_simulation_cpu(U_5, a.data(), output, qubit_5, a.size());
-
-    // for (int i = 0; i < a.size(); i++) {
-    //     printf("%.3f\n", output[i]);
-    // }
     cudaFree(U_0_gpu);
     cudaFree(U_1_gpu);
     cudaFree(U_2_gpu);
