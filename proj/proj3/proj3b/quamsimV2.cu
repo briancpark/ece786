@@ -138,16 +138,16 @@ int main(int argc, char** argv) {
     cudaMemcpy(U_4_gpu, U_4, 4 * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(U_5_gpu, U_5, 4 * sizeof(float), cudaMemcpyHostToDevice);
 
-    int threadsPerBlock = 32;
+    int threadsPerBlock = THREADS_PER_BLOCK;
     int blocksPerGrid = (a.size() + threadsPerBlock - 1) / threadsPerBlock;
 
-    size_t* auxillary_array = (size_t*)malloc(64 * sizeof(size_t));
+    size_t* auxillary_array = (size_t*)malloc(FRAGMENT_SIZE * sizeof(size_t));
     size_t* auxillary_array_gpu;
-    cudaMalloc(&auxillary_array_gpu, 64 * sizeof(size_t));
+    cudaMalloc(&auxillary_array_gpu, FRAGMENT_SIZE * sizeof(size_t));
 
     size_t qubits[6] = {qubit_0, qubit_1, qubit_2, qubit_3, qubit_4, qubit_5};
 
-    for (int i = 0; i < 64; i++) {
+    for (int i = 0; i < FRAGMENT_SIZE; i++) {
         int sum = 0;
         for (int j = 0; j < 6; j++) {
             if (i & (1 << j)) {
@@ -157,7 +157,8 @@ int main(int argc, char** argv) {
         auxillary_array[i] = sum;
     }
 
-    cudaMemcpy(auxillary_array_gpu, auxillary_array, 64 * sizeof(size_t), cudaMemcpyHostToDevice);
+    cudaMemcpy(auxillary_array_gpu, auxillary_array, FRAGMENT_SIZE * sizeof(size_t),
+               cudaMemcpyHostToDevice);
 
     // length of offset is determined by log2(a.size()) - 6
     size_t offsets_len = (size_t)log2(a.size()) - 6;
