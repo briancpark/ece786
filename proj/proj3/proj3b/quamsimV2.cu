@@ -1,10 +1,10 @@
-#include <bitset>
 #include <cuda_runtime.h>
 #include <fstream>
 #include <iostream>
 #include <stdio.h>
 #include <string>
 #include <vector>
+
 using namespace std;
 
 #define FRAGMENT_SIZE     (1 << 6) // 2^6

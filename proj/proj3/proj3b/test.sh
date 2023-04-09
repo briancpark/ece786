@@ -21,3 +21,12 @@ do
     diff $file.out $output_file
     rm $file.out
 done
+
+for file in input/input*.txt
+do
+    echo "Testing $file"
+    ./quamsimV3 $file >> $file.out
+    output_file=${file//input/output}
+    diff $file.out $output_file
+    rm $file.out
+done
