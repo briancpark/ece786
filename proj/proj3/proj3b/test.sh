@@ -18,6 +18,6 @@ do
     echo "Testing $file"
     ./quamsimV2 $file >> $file.out
     output_file=${file//input/output}
-    python3 output_checker.py $file.out $output_file
+    diff $file.out $output_file
     rm $file.out
 done
