@@ -47,7 +47,6 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
             a_shared[idx] = U[0] * x0 + U[1] * x1;
             a_shared[idx + gate_offset] = U[2] * x0 + U[3] * x1;
         } else {
-            // odds
             x0 = a_shared[idx - gate_offset + 1];
             x1 = a_shared[idx + 1];
 
@@ -62,7 +61,6 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
             a_shared[idx + 2] = U[0] * x0 + U[1] * x1;
             a_shared[idx + 2 + gate_offset] = U[2] * x0 + U[3] * x1;
         } else {
-            // odds
             x0 = a_shared[idx - gate_offset + 3];
             x1 = a_shared[idx + 3];
 
@@ -205,19 +203,9 @@ int main(int argc, char** argv) {
         U_0_gpu, U_1_gpu, U_2_gpu, U_3_gpu, U_4_gpu, U_5_gpu, a_gpu, output_gpu, a.size(),
         auxillary_array_gpu, offsets_gpu);
 
-    cudaError_t err;
-    err = cudaDeviceSynchronize();
-    if (err != cudaSuccess) {
-        printf("Error: %s\n", cudaGetErrorString(err));
-    }
-    err = cudaMemcpy(output, output_gpu, a.size() * sizeof(float), cudaMemcpyDeviceToHost);
-    if (err != cudaSuccess) {
-        printf("Error: %s\n", cudaGetErrorString(err));
-    }
-    err = cudaDeviceSynchronize();
-    if (err != cudaSuccess) {
-        printf("Error: %s\n", cudaGetErrorString(err));
-    }
+    cudaDeviceSynchronize();
+    cudaMemcpy(output, output_gpu, a.size() * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaDeviceSynchronize();
 
     // Print the output vector
     for (int i = 0; i < a.size(); i++) {
