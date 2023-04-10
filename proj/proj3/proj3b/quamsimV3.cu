@@ -8,7 +8,7 @@
 using namespace std;
 
 #define FRAGMENT_SIZE     (1 << 6) // 2^6
-#define THREADS_PER_BLOCK (1 << 5) // 2^5
+#define THREADS_PER_BLOCK (1 << 4) // 2^4
 
 __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float* U_3, float* U_4,
                                        float* U_5, float* a, float* output, size_t N,
@@ -16,7 +16,7 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
 
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
 
-    if (tid >= N / 2) {
+    if (tid >= N / 4) {
         return;
     }
 
@@ -25,10 +25,12 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
     // Load the fragment from global memory to shared memory
     size_t offset = offsets[blockIdx.x];
 
-    size_t idx = threadIdx.x * 2;
+    size_t idx = threadIdx.x * 4;
 
     a_shared[idx] = a[auxillary_array[idx] + offset];
     a_shared[idx + 1] = a[auxillary_array[idx + 1] + offset];
+    a_shared[idx + 2] = a[auxillary_array[idx + 2] + offset];
+    a_shared[idx + 3] = a[auxillary_array[idx + 3] + offset];
 
     float* Us[6] = {U_0, U_1, U_2, U_3, U_4, U_5};
     __syncthreads();
@@ -38,7 +40,6 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
     for (size_t gate = 0; gate < 6; gate++) {
         float* U = Us[gate];
         size_t gate_offset = 1 << gate;
-
         if ((idx & gate_offset) == 0) {
             x0 = a_shared[idx];
             x1 = a_shared[idx + gate_offset];
@@ -46,11 +47,27 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
             a_shared[idx] = U[0] * x0 + U[1] * x1;
             a_shared[idx + gate_offset] = U[2] * x0 + U[3] * x1;
         } else {
+            // odds
             x0 = a_shared[idx - gate_offset + 1];
             x1 = a_shared[idx + 1];
 
             a_shared[idx - gate_offset + 1] = U[0] * x0 + U[1] * x1;
             a_shared[idx + 1] = U[2] * x0 + U[3] * x1;
+        }
+
+        if (((idx + 2) & gate_offset) == 0) {
+            x0 = a_shared[idx + 2];
+            x1 = a_shared[idx + 2 + gate_offset];
+
+            a_shared[idx + 2] = U[0] * x0 + U[1] * x1;
+            a_shared[idx + 2 + gate_offset] = U[2] * x0 + U[3] * x1;
+        } else {
+            // odds
+            x0 = a_shared[idx - gate_offset + 3];
+            x1 = a_shared[idx + 3];
+
+            a_shared[idx - gate_offset + 3] = U[0] * x0 + U[1] * x1;
+            a_shared[idx + 3] = U[2] * x0 + U[3] * x1;
         }
         __syncthreads();
         __syncwarp();
@@ -59,6 +76,8 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
     // Store the fragment from shared memory to global memory
     output[auxillary_array[idx] + offset] = a_shared[idx];
     output[auxillary_array[idx + 1] + offset] = a_shared[idx + 1];
+    output[auxillary_array[idx + 2] + offset] = a_shared[idx + 2];
+    output[auxillary_array[idx + 3] + offset] = a_shared[idx + 3];
     return;
 }
 
@@ -186,9 +205,19 @@ int main(int argc, char** argv) {
         U_0_gpu, U_1_gpu, U_2_gpu, U_3_gpu, U_4_gpu, U_5_gpu, a_gpu, output_gpu, a.size(),
         auxillary_array_gpu, offsets_gpu);
 
-    cudaDeviceSynchronize();
-    cudaMemcpy(output, output_gpu, a.size() * sizeof(float), cudaMemcpyDeviceToHost);
-    cudaDeviceSynchronize();
+    cudaError_t err;
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        printf("Error: %s\n", cudaGetErrorString(err));
+    }
+    err = cudaMemcpy(output, output_gpu, a.size() * sizeof(float), cudaMemcpyDeviceToHost);
+    if (err != cudaSuccess) {
+        printf("Error: %s\n", cudaGetErrorString(err));
+    }
+    err = cudaDeviceSynchronize();
+    if (err != cudaSuccess) {
+        printf("Error: %s\n", cudaGetErrorString(err));
+    }
 
     // Print the output vector
     for (int i = 0; i < a.size(); i++) {
