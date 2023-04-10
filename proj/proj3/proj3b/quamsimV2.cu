@@ -11,10 +11,8 @@ using namespace std;
 #define THREADS_PER_BLOCK (1 << 5) // 2^5
 
 __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float* U_3, float* U_4,
-                                       float* U_5, float* a, float* output, size_t qubit0,
-                                       size_t qubit1, size_t qubit2, size_t qubit3, size_t qubit4,
-                                       size_t qubit5, size_t N, size_t* auxillary_array,
-                                       size_t* offsets) {
+                                       float* U_5, float* a, float* output, size_t N,
+                                       size_t* auxillary_array, size_t* offsets) {
 
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
 
@@ -185,8 +183,8 @@ int main(int argc, char** argv) {
     cudaMemcpy(offsets_gpu, offsets, offsets_len * sizeof(size_t), cudaMemcpyHostToDevice);
 
     quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(
-        U_0_gpu, U_1_gpu, U_2_gpu, U_3_gpu, U_4_gpu, U_5_gpu, a_gpu, output_gpu, qubit_0, qubit_1,
-        qubit_2, qubit_3, qubit_4, qubit_5, a.size(), auxillary_array_gpu, offsets_gpu);
+        U_0_gpu, U_1_gpu, U_2_gpu, U_3_gpu, U_4_gpu, U_5_gpu, a_gpu, output_gpu, a.size(),
+        auxillary_array_gpu, offsets_gpu);
 
     cudaDeviceSynchronize();
     cudaMemcpy(output, output_gpu, a.size() * sizeof(float), cudaMemcpyDeviceToHost);
@@ -197,23 +195,24 @@ int main(int argc, char** argv) {
         printf("%.3f\n", output[i]);
     }
 
-    cudaFree(offsets_gpu);
     cudaFree(U_0_gpu);
     cudaFree(U_1_gpu);
     cudaFree(U_2_gpu);
     cudaFree(U_3_gpu);
     cudaFree(U_4_gpu);
     cudaFree(U_5_gpu);
-    free(offsets);
+    cudaFree(a_gpu);
+    cudaFree(output_gpu);
+    cudaFree(offsets_gpu);
+    cudaFree(auxillary_array_gpu);
     free(U_0);
     free(U_1);
     free(U_2);
     free(U_3);
     free(U_4);
     free(U_5);
-
-    cudaFree(a_gpu);
-    cudaFree(output_gpu);
     free(output);
+    free(offsets);
+    free(auxillary_array);
     return 0;
 }
