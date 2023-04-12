@@ -1,0 +1,106 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+\usepackage[margin=0.70in]{geometry}
+\usepackage{hyperref}
+\usepackage{graphicx}
+\usepackage{authblk}
+\usepackage{subfig}
+\usepackage{indentfirst}
+\usepackage{minted}
+
+\title{Final Project: Cache Bypassing Analysis and Performance Study}
+\author{Brian Park}
+\affil{North Carolina State University, Computer Engineering 786}
+\date{April 2023}
+
+\begin{document}
+
+\maketitle
+
+\section{Cache Efficiency Analysis}
+
+The configuration used is \verb|SM2_GTX480|. I set the \verb|gpgpu_max_insn| to 100M. And benchmarked from Rodinia are BP, HS, and LUD benchmarks. From ISPASS, I chose BFS, LPS, and NQU.
+
+To determine the category, cache insensitive is classified as any improvement less than 10\% or -10\%. Otherwise, it is cache unfriendly or cache friendly. The results are shown in Table \ref{table:cache}
+
+\begin{table}[H]
+\small
+\caption{Cache Efficiency Analysis Table} % title of Table
+\centering % used for centering table
+\begin{tabular}{c c c c c c c} % centered columns (4 columns)
+\hline\hline %inserts double horizontal lines
+Benchmark & Kernel & UID & IPC & IPC w/ Bypass & Improvement & Category \\ [0.5ex] % inserts table
+%heading
+\hline % inserts single horizontal line
+BP  & \verb|_Z22bpnn_layerforward_CUDAPfS_S_S_ii|    & 1  & 675.6067  & 671.3728 & -0.63\% & Insensitive \\ 
+HS  & \verb|_Z14calculate_tempiPfS_S_iiiiffffff|     & 1  & 701.3718  & 707.6299 & 0.89\% & Insensitive\\  
+LUD & \verb|_Z12lud_diagonalPfii|                    & 1  & 0.7026    & 0.7176   & 2.13\% & Insensitive\\
+LUD & \verb|_Z13lud_perimeterPfii|                   & 2  & 9.2446    & 9.1103   & -1.45\% & Insensitive\\
+LUD & \verb|_Z12lud_internalPfii|                    & 3  & 501.2445  & 567.1572 & 13.15\% &Unfriendly\\
+LUD & \verb|_Z12lud_diagonalPfii|                    & 4  & 0.7558    & 0.7742   & 2.43\% &Insensitive\\
+LUD & \verb|_Z13lud_perimeterPfii|                   & 5  & 10.9464   & 11.8102  & 7.89\% &Insensitive\\
+LUD & \verb|_Z12lud_internalPfii|                    & 6  & 497.3745  & 574.7466 & 15.56\% &Unfriendly\\
+LUD & \verb|_Z12lud_diagonalPfii|                    & 7  & 0.7558    & 0.7741   & 2.42\% &Insensitive\\
+LUD & \verb|_Z13lud_perimeterPfii|                   & 8  & 10.1697   & 10.9718  & 7.89\% &Insensitive\\
+LUD & \verb|_Z12lud_internalPfii|                    & 9  & 473.0808  & 557.2787 & 17.8\% &Unfriendly\\
+LUD & \verb|_Z12lud_diagonalPfii|                    & 10 & 0.7558    & 0.7741   & 2.42\% &Insensitive\\
+LUD & \verb|_Z13lud_perimeterPfii|                   & 11 & 9.3893    & 10.1287  & 7.87\% &Insensitive\\
+LUD & \verb|_Z12lud_internalPfii|                    & 12 & 462.4784  & 529.6388 & 14.52\% &Unfriendly\\
+LUD & \verb|_Z12lud_diagonalPfii|                    & 13 & 0.7558    & 0.7741   & 2.42\% &Insensitive\\
+LUD & \verb|_Z13lud_perimeterPfii|                   & 14 & 8.6082    & 9.2874   & 7.89\% &Insensitive\\
+LUD & \verb|_Z12lud_internalPfii|                    & 15 & 378.4012  & 504.6895 & 33.37\% &Unfriendly\\
+LUD & \verb|_Z12lud_diagonalPfii|                    & 16 & 0.7558    & 0.7742   & 2.43\% &Insensitive\\
+LUD & \verb|_Z13lud_perimeterPfii|                   & 17 & 7.8294    & 8.4467   & 7.88\% &Insensitive\\
+LUD & \verb|_Z12lud_internalPfii|                    & 18 & 357.2093  & 493.7370 & 38.22\% &Unfriendly\\
+LUD & \verb|_Z12lud_diagonalPfii|                    & 19 & 0.7558    & 0.7742   & 2.43\% &Insensitive\\
+LUD & \verb|_Z13lud_perimeterPfii|                   & 20 & 7.0473    & 7.6040   & 7.9\% &Insensitive\\
+LUD & \verb|_Z12lud_internalPfii|                    & 21 & 338.0277  & 453.3258 & 34.11\% &Unfriendly\\
+LUD & \verb|_Z12lud_diagonalPfii|                    & 22 & 0.7558    & 0.7741   & 2.42\% &Insensitive\\
+LUD & \verb|_Z13lud_perimeterPfii|                   & 23 & 6.2640    & 6.7609   & 7.93\% &Insensitive\\
+LUD & \verb|_Z12lud_internalPfii|                    & 24 & 324.1251  & 467.1097 & 44.11\% &Unfriendly\\
+LUD & \verb|_Z12lud_diagonalPfii|                    & 25 & 0.7558    & 0.7741   & 2.42\% &Insensitive\\
+LUD & \verb|_Z13lud_perimeterPfii|                   & 26 & 5.4832    & 5.9163   & 7.9\% &Insensitive\\
+LUD & \verb|_Z12lud_internalPfii|                    & 27 & 290.9933  & 405.2074 & 39.25\% &Unfriendly\\
+LUD & \verb|_Z12lud_diagonalPfii|                    & 28 & 0.7558    & 0.7741   & 2.42\% &Insensitive\\
+LUD & \verb|_Z13lud_perimeterPfii|                   & 29 & 4.7006    & 5.0733   & 7.93\% &Insensitive\\
+LUD & \verb|_Z12lud_internalPfii|                    & 30 & 246.8571  & 344.3503 & 39.49\% &Unfriendly\\
+LUD & \verb|_Z12lud_diagonalPfii|                    & 31 & 0.7558    & 0.7741   & 2.42\% &Insensitive\\
+LUD & \verb|_Z13lud_perimeterPfii|                   & 32 & 3.9172    & 4.2288   & 7.95\% &Insensitive\\
+LUD & \verb|_Z12lud_internalPfii|                    & 33 & 208.6225  & 253.2766 & 21.4\% &Unfriendly\\
+LUD & \verb|_Z12lud_diagonalPfii|                    & 34 & 0.7558    & 0.7741   & 2.42\% &Insensitive\\
+LUD & \verb|_Z13lud_perimeterPfii|                   & 35 & 3.1348    & 3.3833   & 7.93\% &Insensitive\\
+LUD & \verb|_Z12lud_internalPfii|                    & 36 & 142.2966  & 172.1319 & 20.97\% &Unfriendly\\
+LUD & \verb|_Z12lud_diagonalPfii|                    & 37 & 0.7558    & 0.7741   & 2.42\% &Insensitive\\
+LUD & \verb|_Z13lud_perimeterPfii|                   & 38 & 2.3514    & 2.5387   & 7.97\% &Insensitive\\
+LUD & \verb|_Z12lud_internalPfii|                    & 39 & 111.9498  & 134.8471 & 20.45\% &Unfriendly\\
+LUD & \verb|_Z12lud_diagonalPfii|                    & 40 & 0.7558    & 0.7741   & 2.42\% &Insensitive\\
+LUD & \verb|_Z13lud_perimeterPfii|                   & 41 & 1.5679    & 1.6926   & 7.95\% &Insensitive\\
+LUD & \verb|_Z12lud_internalPfii|                    & 42 & 39.4499   & 44.9208  & 13.87\% &Unfriendly\\
+LUD & \verb|_Z12lud_diagonalPfii|                    & 43 & 0.7558    & 0.7741   & 2.42\% &Insensitive\\
+LUD & \verb|_Z13lud_perimeterPfii|                   & 44 & 0.8583    & 0.8467   & -1.35\% &Insensitive\\
+LUD & \verb|_Z12lud_internalPfii|                    & 45 & 16.2623   & 16.6957  & 2.67\% &Insensitive\\
+LUD & \verb|_Z12lud_diagonalPfii|                    & 46 & 0.7558    & 0.7741   & 2.42\% &Insensitive\\
+BFS & \verb|_Z6KernelP4NodePiPbS2_S1_S2_i|           & 1  & 217.5687  & 167.9066 & -22.83\% &Friendly\\
+BFS & \verb|_Z6KernelP4NodePiPbS2_S1_S2_i|           & 2  & 206.0139  & 146.9099 & -28.69\% &Friendly\\
+BFS & \verb|_Z6KernelP4NodePiPbS2_S1_S2_i|           & 3  & 165.9271  & 112.0179 & -32.49\% &Friendly\\
+BFS & \verb|_Z6KernelP4NodePiPbS2_S1_S2_i|           & 4  & 76.2236   & 61.3361  & -19.53\% &Friendly\\
+BFS & \verb|_Z6KernelP4NodePiPbS2_S1_S2_i|           & 5  & 21.3021   & 36.1667  & 69.78\% &Unfriendly\\
+BFS & \verb|_Z6KernelP4NodePiPbS2_S1_S2_i|           & 6  & 22.5533   & 44.4395  & 97.04\% &Unfriendly\\
+BFS & \verb|_Z6KernelP4NodePiPbS2_S1_S2_i|           & 7  & 46.5675   & 86.5094  & 85.77\% &Unfriendly\\
+BFS & \verb|_Z6KernelP4NodePiPbS2_S1_S2_i|           & 8  & 354.4445  & 455.3303 & 28.46\% &Unfriendly\\
+BFS & \verb|_Z6KernelP4NodePiPbS2_S1_S2_i|           & 9  & 473.1056  & 486.7920 & 2.89\% &Insensitive\\
+LPS & \verb|_Z13GPU_laplace3diiiiPfS_ |              & 1  & 383.1095  & 408.8568 & 6.72\% &Insensitive\\ 
+NQU & \verb|_Z24solve_nqueen_cuda_kerneliiPjS_S_S_i| & 1  & 30.4185   & 30.7699  & 1.16\% &Insensitive\\
+[1ex] % [1ex] adds vertical space
+\hline %inserts single line
+\end{tabular}
+\label{table:cache} % is used to refer this table in the text
+\end{table}
+
+\section{Profiling-Based Cache Bypassing}
+I implemented what \cite{cachebypassing}
+
+\bibliographystyle{ieeetr}
+\bibliography{references}
+
+\end{document}
