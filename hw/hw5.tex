@@ -1,0 +1,78 @@
+\documentclass[11pt]{article}
+\usepackage{ece786}
+
+%%%%%%%%%%%%%%%%%%%% name/id
+\rfoot{\small Brian Park | 200190057}
+
+
+%%%%%%%%%%%%%%%%%%%% Course/HW info
+\newcommand*{\instr}{Huiyang Zhou}
+\newcommand*{\term}{Spring 2023}
+\newcommand*{\coursenum}{ECE 786}
+\newcommand*{\coursename}{Advanced Computer Architecture: Data Parallel Processors}
+\newcommand*{\hwnum}{5}
+
+\rhead{\LARGE   \fontfamily{lmdh}\selectfont	HW \hwnum}
+
+\lfoot{\small \coursenum, \term, HW \hwnum}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Document Start %%%%%%%%%%%%%%%%%
+\begin{document}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Question 1
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{}
+
+In this exercise, we analyze how the vector instructions of a Vector-Add function run on vector processors. The following is the instruction sequence in the VMIPS format:
+\begin{verbatim}
+LV       V1, R1
+LV       V2, R2
+ADDVV.D  V3, V1, V2
+SV       V3, R3
+\end{verbatim}
+
+Using the pipeline timing diagram to show how these instructions are executed on one vector processor pipeline. \\
+
+The following assumptions are made: 
+\begin{itemize}
+	\item the vector length is 64 (i.e., each vector register has 64 elements)
+	\item the latency of the load/store unit is 5 cycles (i.e., 1 AGEN stage and 4 MEM stages); the latency of the adder is 3 cycles (i.e., 3 EX stages); both the load/store unit and adder are fully pipelined and the throughputs are one element per cycle after the pipeline is filled
+	\item there are 2 lanes in the vector processor and each lane has an ALU and a load/store unit. How many cycles does it take to execute all the instructions in an in-order pipeline with ALL the necessary dependency checking logic, support for chaining, and register read/write ports, counting from when the first instruction enters the IF stage to when the last instruction leaves the WB stage?
+\end{itemize}
+
+\begin{Answer}
+sdfsdfsd
+\end{Answer}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Question 2
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\section{}
+
+Analyze the following kernel function (the naive transpose kernel) to see whether there are scalar operations and whether the AMD GCN architecture will be beneficial compared to the SIMT architecture. Explain your answer (i.e., if you say scalar operations exist, identify them). 
+
+The constants \verb|TILE_DIM = 32| and \verb|BLOCK_ROWS = 8|.
+\begin{verbatim}
+ __global__ void transposeNaive(float *odata, float* idata, int width, int height, int nreps) {
+     int xIndex = blockIdx.x*TILE_DIM + threadIdx.x;
+     int yIndex = blockIdx.y*TILE_DIM + threadIdx.y;
+     int index_in = xIndex + width * yIndex;
+     int index_out = yIndex + height * xIndex;
+     for (int r=0; r < nreps; r++) {
+          for (int i=0; i < TILE_DIM; i+=BLOCK_ROWS) {
+               odata[index_out+i] = idata[index_in+i*width];
+
+           }
+
+      }
+
+}
+\end{verbatim}
+
+\begin{Answer}
+sdfsfds
+\end{Answer}
+
+\end{document}
