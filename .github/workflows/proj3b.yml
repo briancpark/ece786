@@ -1,4 +1,4 @@
-name: Proj1A
+name: Proj3B
 
 on:
   push:
@@ -16,12 +16,11 @@ jobs:
         id: cuda-toolkit
         with:
           cuda: "11.7.0"
-      - name: Compile Proj1A
+      - name: Compile Proj3B
         run: |
-          cd proj/proj1/proj1a
+          cd proj/proj3/proj3b
           make
-      - name: Run Proj1A
+      - name: Run Proj3B
         run: |
-          cd proj/proj1/proj1a
+          cd proj/proj3/proj3b
           ./test.sh
-          ./benchmark.sh
