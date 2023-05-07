@@ -29,9 +29,10 @@ docker exec -it ContainerID /bin/bash
 
 ## Project 1: CUDA Programming and GPGPU-Sim
 
-A programming assignment to get your feet wet with CUDA and GPGPU-Sim. The assignment is to implement a simple matrix multiplication kernel for quantum simulation and run it on GPGPU-Sim.
+A programming assignment to get your feet wet with CUDA and GPGPU-Sim. The assignment is to implement a simple matrix multiplication kernel for quantum simulation and run it on GPGPU-Sim. Then we do simple analysis of the GPGPU-Sim project of cache misses and performance analysis.
 
-Specifically, we optimize this kernel for quantum simulation:
+Specifically, we implement and optimize this kernel for quantum simulation:
+
 ```math
 \left(\begin{array}{l}
 a_{b_{n-1}, \ldots, b_{t+1}, 0, b_{t-1}, \ldots, b_0}^{\prime} \\
@@ -45,13 +46,19 @@ a_{b_{n-1}, \ldots, b_{t+1}, 1, b_{t-1}, \ldots, b_0}
 \end{array}\right)
 ```
 
-```sh
-
 ## Project 2: GPGPU-Sim
+
+We benchmark a variety of kernels on GPGPU-Sim from ISPASS benchmarks. We analyze the IPC as well as the branch divergence of each of the kernels. We also analyze the number of global and shared memory accesses that each kernel makes.
 
 ## Project 3: Load Bypass and Quantum Simulation Optimizations
 
+We implement a load bypass implementation based on certain contitions of the address accesses. This was another case study in how load bypass can affect cache performance.
+
+Separately, we implement a quantum simulation optimization that now supports multiple qubits and gates. This was entirely done in CUDA, so we wrote a naive kernel, then optimized it with software optimizations such as utilizing shared memory and thread coarsening. Later, the number of shared and global memory accesses was analyzed under GPGPU-Sim as well as end-to-end performance on a real GPU.
+
 ## Final Project: Cache Bypassing Analysis and Performance Study
+
+We implement a profile-based cache bypassing mechanism based on my professor's paper: Locality-Driven Dynamic GPU Cache Bypassing. After implementing, we do a thorough analysis on the mechanism under various benchmarks from ISPASS and Rodinia.
 
 ## Requirements for Plotting
 
