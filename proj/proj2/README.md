@@ -2,7 +2,7 @@
 
 Run Docker container:
 
-```bash 
+```sh
 docker run -w /root -it pli11/gpgpusim:cuda_10_1 /bin/bash
 ```
 
@@ -13,6 +13,7 @@ docker exec -it ContainerID /bin/bash
 ```
 
 ## Task 1
+
 Copy instructions.cc to `/root/gpgpusim_distribution/src/cuda-sim/` directory
 
 ```sh
@@ -26,6 +27,7 @@ cp ~/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
 ```
 
 ## Task 2
+
 Run benchmarks as described in the project description. Then run the following commands to generate the plots (it doesn't have to work inside the Docker container once you obtain the data):
 
 ```sh
@@ -33,8 +35,9 @@ python3 plot.py
 ```
 
 ## Task 3
+
 Run the following:
-    
+
 ```sh
 cd ~/gpgpu-sim_distribution
 make clean
@@ -44,4 +47,5 @@ cd ~/ISPASS/LPS
 ```
 
 ## Task 4
+
 Run the same commands, but with task 4 source files copied over.
