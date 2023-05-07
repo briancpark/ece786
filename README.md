@@ -32,7 +32,7 @@ docker exec -it ContainerID /bin/bash
 A programming assignment to get your feet wet with CUDA and GPGPU-Sim. The assignment is to implement a simple matrix multiplication kernel for quantum simulation and run it on GPGPU-Sim.
 
 Specifically, we optimize this kernel for quantum simulation:
-$$\left(\begin{array}{l}
+$\left(\begin{array}{l}
 a_{b_{n-1}, \ldots, b_{t+1}, 0, b_{t-1}, \ldots, b_0}^{\prime} \\
 a_{b_{n-1}^{\prime}, \ldots, b_{t+1}, 1, b_{t-1}, \ldots, b_0}
 \end{array}\right)=\left[\begin{array}{ll}
@@ -41,7 +41,7 @@ U_{1,0} & U_{1,1}
 \end{array}\right]\left(\begin{array}{l}
 a_{b_{n-1}, \ldots, b_{t+1}, 0, b_{t-1}, \ldots, b_0} \\
 a_{b_{n-1}, \ldots, b_{t+1}, 1, b_{t-1}, \ldots, b_0}
-\end{array}\right)$$
+\end{array}\right)$
 
 ```sh
 
