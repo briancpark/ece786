@@ -24,18 +24,18 @@ Here we do matrix matrix multiplication of the following equation in CUDA:
 
 Defined as:
 $$\left(\begin{array}{l}
-a_{b_{n-1}, \ldots, b_{t+1}, 0, b_{t-1}, \ldots, b_0}^{\prime} \\
-a_{b_{n-1}^{\prime}, \ldots, b_{t+1}, 1, b_{t-1}, \ldots, b_0}
-\end{array}\right)=\left[\begin{array}{ll}
-U_{0,0} & U_{0,1} \\
-U_{1,0} & U_{1,1}
-\end{array}\right]\left(\begin{array}{l}
-a_{b_{n-1}, \ldots, b_{t+1}, 0, b_{t-1}, \ldots, b_0} \\
-a_{b_{n-1}, \ldots, b_{t+1}, 1, b_{t-1}, \ldots, b_0}
-\end{array}\right)$$
+			a_{b_{n-1}, \ldots, b_{t+1}, 0, b_{t-1}, \ldots, b_0}^{\prime} \\
+			a_{b_{n-1}^{\prime}, \ldots, b_{t+1}, 1, b_{t-1}, \ldots, b_0}
+		\end{array}\right)=\left[\begin{array}{ll}
+			U_{0,0} & U_{0,1} \\
+			U_{1,0} & U_{1,1}
+		\end{array}\right]\left(\begin{array}{l}
+			a_{b_{n-1}, \ldots, b_{t+1}, 0, b_{t-1}, \ldots, b_0} \\
+			a_{b_{n-1}, \ldots, b_{t+1}, 1, b_{t-1}, \ldots, b_0}
+		\end{array}\right)$$
 
 The serial code for CPU is as follows:
-\begin{minted}{C}[H]
+\begin{minted}{C}
 void quantum_simulation_cpu(float* U, float* a, float* output, size_t qubit, size_t N) {
     // Perform quantum simulation on qubit
     for (size_t i = 0; i < N; i++) {
@@ -49,7 +49,7 @@ void quantum_simulation_cpu(float* U, float* a, float* output, size_t qubit, siz
 \end{minted}
 
 And this is the transformed CUDA code:
-\begin{minted}{Cuda}[H]
+\begin{minted}{Cuda}
 __global__ void quantum_simulation_gpu(const float* U, const float* a, float* output, int qubit,
                                        int N) {
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
@@ -75,7 +75,7 @@ I benchmarked the CUDA kernel for 100 trials on the NVIDIA TITAN V GPU.
 
 On \verb|input.txt| the execution time for version 1 is 5.532 $\mu s$ for the quantum simulation kernel using \verb|cudaMalloc|. For version 2 using CUDA unified memory semantics via \verb|cudaMallocManaged|, the speed is 10.010 $\mu s$, which is $1.81 \times$ slower than version 1.
 
-The performance can also be defined not only in latency, but also FLOPS (floating point operations per second). Thus, the performance for version 1 is 69.42 GFLOPS and for version 2 is 38.36 GFLOPS. We see that the second version really takes a hit on the execution time with a tradeoff of programmability. Explicitly managing memory between the CPU and GPU has substantial benefits over letting CUDA handle it via their unified memory programming model.  
+The performance can also be defined not only in latency, but also FLOPS (floating point operations per second). Thus, the performance for version 1 is 69.42 GFLOPS and for version 2 is 38.36 GFLOPS. We see that the second version really takes a hit on the execution time with a tradeoff of programmability. Explicitly managing memory between the CPU and GPU has substantial benefits over letting CUDA handle it via their unified memory programming model.
 
 \section{Part B: GPGPU-Sim}
 % -For part B, look at the specification of part B, finish the part of "Compile your program and run your program with GPGPU-SIM" and answer the questions which are described in step 9.

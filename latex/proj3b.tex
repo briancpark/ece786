@@ -18,9 +18,9 @@
 \maketitle
 
 \section{Naive Multi-Gated Quantum Simulation}
-To write quantum simulation on six single qubit quantum gates to six different qubits on an $n$-qubit quantum circuit, I used the same implementation from Project 1A, but repeated the process six times. As a result, I had to add intermediate kernels to copy device-to-device memory of output back into the input (the \verb|cudaMemcpy| was too slow). Also, I had to add synchronizations via \verb|__syncthreads()|. Although there are implicit barriers between kernel functions in CUDA, it was necessary to add synchronization barriers within the kernel. This was because when a kernel is launched, there is no guarantee that a warp will finish its execution as it's not required to wait until the first warp exits. Thus, a kernel-level synchronization primitive was added. 
+To write quantum simulation on six single qubit quantum gates to six different qubits on an $n$-qubit quantum circuit, I used the same implementation from Project 1A, but repeated the process six times. As a result, I had to add intermediate kernels to copy device-to-device memory of output back into the input (the \verb|cudaMemcpy| was too slow). Also, I had to add synchronizations via \verb|__syncthreads()|. Although there are implicit barriers between kernel functions in CUDA, it was necessary to add synchronization barriers within the kernel. This was because when a kernel is launched, there is no guarantee that a warp will finish its execution as it's not required to wait until the first warp exits. Thus, a kernel-level synchronization primitive was added.
 
-\begin{minted}{Cuda}[H]
+\begin{minted}{Cuda}
 __global__ void quantum_simulation_gpu(const float* U, const float* a, float* output, int qubit,
                                        int N) {
     int tid = blockDim.x * blockIdx.x + threadIdx.x;
@@ -40,7 +40,7 @@ __global__ void quantum_simulation_gpu(const float* U, const float* a, float* ou
 
 Furthermore, the main execution of kernels look like this:
 
-\begin{minted}{C}[H]
+\begin{minted}{C}
 quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_0_gpu, a_gpu, output_gpu, qubit_0,
                                                             a.size());
 device_to_device_memcpy<<<blocksPerGrid, threadsPerBlock>>>(output_gpu, a_gpu, a.size());
@@ -60,18 +60,18 @@ quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(U_5_gpu, a_gpu, outpu
                                                             a.size());
 \end{minted}
 
-Because I wrote multiple kernels, it also meant more accesses to global memory. As a result, there are 11 kernels, and 11 global reads and writes reported in GPGPU-Sim. The number of global reads is 576320 and global writes is 32768. In total, there are 609088 global memory accesses. 
+Because I wrote multiple kernels, it also meant more accesses to global memory. As a result, there are 11 kernels, and 11 global reads and writes reported in GPGPU-Sim. The number of global reads is 576320 and global writes is 32768. In total, there are 609088 global memory accesses.
 
 \section{Multi-Gated Quantum Simulation with Shared Memory Optimization}
-The next step was to apply optimizations to make the code run efficiently. To do this, I used the SharedMem method as mentioned in HyQuas \cite{hyquas}. This required to split the input vector in to fragments of size 64 elements. I chose 64 specifically to fit in the $2^6$ elements for the six qubit offsets. Before the kernel is called, there are some bit manipulations that needed to be done to reshuffle the indices for the input vector into an auxillary array. I followed the figure from HyQuas shown in Figure 1 to do that manipulation from global index to shared index. Then I applied the gates sequentially per fragment. Then remap and restore the indices from shared index back to global index to store back to global memory. In order to map the gates correctly, as the first gate will couple with even and odd indices, second gate will couple with elements 2 indices apart, third gate will couple with elements 4 indices apart, etc, I had to do additional bit manipulations to compute the offset within shared memory buffer. 
+The next step was to apply optimizations to make the code run efficiently. To do this, I used the SharedMem method as mentioned in HyQuas \cite{hyquas}. This required to split the input vector in to fragments of size 64 elements. I chose 64 specifically to fit in the $2^6$ elements for the six qubit offsets. Before the kernel is called, there are some bit manipulations that needed to be done to reshuffle the indices for the input vector into an auxillary array. I followed the figure from HyQuas shown in Figure 1 to do that manipulation from global index to shared index. Then I applied the gates sequentially per fragment. Then remap and restore the indices from shared index back to global index to store back to global memory. In order to map the gates correctly, as the first gate will couple with even and odd indices, second gate will couple with elements 2 indices apart, third gate will couple with elements 4 indices apart, etc, I had to do additional bit manipulations to compute the offset within shared memory buffer.
 
 \begin{figure}[H]
-    \centerline{\includegraphics[width=6in]{sharedmem.png}}
+	\centerline{\includegraphics[width=6in]{figures/sharedmem.png}}
 \end{figure}
 
-Below, is what the GPU kernel looks like for the shared memory optimization. 
+Below, is what the GPU kernel looks like for the shared memory optimization.
 
-\begin{minted}{Cuda}[H]
+\begin{minted}{Cuda}
 __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float* U_3, float* U_4,
                                        float* U_5, float* a, float* output, size_t N,
                                        size_t* auxillary_array, size_t* offsets) {
@@ -126,7 +126,7 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
 
 In the end, only one kernel is called as a result:
 
-\begin{minted}{C}[H]
+\begin{minted}{Cuda}
 quantum_simulation_gpu<<<blocksPerGrid, threadsPerBlock>>>(
     U_0_gpu, U_1_gpu, U_2_gpu, U_3_gpu, U_4_gpu, U_5_gpu, a_gpu, output_gpu, a.size(),
     auxillary_array_gpu, offsets_gpu);
@@ -138,10 +138,10 @@ There are 19168 global reads and 32768 global writes. Thus, amounting to a total
 % 3. Use GPGPU-SIM to count the number of global memory accesses of task1 and task2, report the count number of task1 and task2 and analyze their differences in your report.
 
 \section{Multi-Gated Quantum Simulation with Thread Coarsening Optimization}
-I have already applied a bit of thread coarsening or thread fusion, but using 32 threads per 64 elements. I can improve this further by performing 16 threads over 64 elements, such that 1 thread operates over 4 elements. In order to do that, I unrolled the loop twice. Unfortunately, that creates the same number of reads (19168), but twice the number of global writes (65536). This is mainly because I have to write to more temporary variables. Unfortunately, I see no efficient way to optimize even more, due to the coupling of gates and indices of shared memory. If I were to merge if-else statements, I would run into even more performance decrease, as there are less threads running in parallel. I also tried to unroll the loops at the gate level, but found no benefit as it incurs more overhead due to synchronization that is required in the inner for loop to update the output values. 
+I have already applied a bit of thread coarsening or thread fusion, but using 32 threads per 64 elements. I can improve this further by performing 16 threads over 64 elements, such that 1 thread operates over 4 elements. In order to do that, I unrolled the loop twice. Unfortunately, that creates the same number of reads (19168), but twice the number of global writes (65536). This is mainly because I have to write to more temporary variables. Unfortunately, I see no efficient way to optimize even more, due to the coupling of gates and indices of shared memory. If I were to merge if-else statements, I would run into even more performance decrease, as there are less threads running in parallel. I also tried to unroll the loops at the gate level, but found no benefit as it incurs more overhead due to synchronization that is required in the inner for loop to update the output values.
 
 
-\begin{minted}{Cuda}[H]
+\begin{minted}{Cuda}
 __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float* U_3, float* U_4,
                                        float* U_5, float* a, float* output, size_t N,
                                        size_t* auxillary_array, size_t* offsets) {
@@ -213,17 +213,17 @@ __global__ void quantum_simulation_gpu(float* U_0, float* U_1, float* U_2, float
 \end{minted}
 
 \section{Conclusion}
-Here, I compare all of the implementations to understand the impact of each optimization. I benchmarked this on \verb|input_for_qc16_q0_q2_q4_q6_q8_q10.txt| as that is the largest dataset. The results shown previously and below are on V100 config. Real hardware benchmarks were done on RTX 2080. Correctness was verfied on Hydra clusters as well. But Thread Coarsening gives no benefit due to how the algorithm and data movement works. 
+Here, I compare all of the implementations to understand the impact of each optimization. I benchmarked this on \verb|input_for_qc16_q0_q2_q4_q6_q8_q10.txt| as that is the largest dataset. The results shown previously and below are on V100 config. Real hardware benchmarks were done on RTX 2080. Correctness was verfied on Hydra clusters as well. But Thread Coarsening gives no benefit due to how the algorithm and data movement works.
 
 \begin{figure}[H]
-    \centerline{\includegraphics[width=6in]{global_reads_writes.png}}
+	\centerline{\includegraphics[width=6in]{figures/global_reads_writes.png}}
 \end{figure}
 
 \begin{figure}[H]
-    \centerline{\includegraphics[width=6in]{quantum_time.png}}
+	\centerline{\includegraphics[width=6in]{figures/quantum_time.png}}
 \end{figure}
 
-We see that SharedMem performs the best, with Thread Coarsening coming very close. Sometimes, if code is not highly parallelizable with deep reuse, like matrix multiplication, thread coarsening may have diminishing returns. And we see that is the case here with quantum simulation. In the end, SharedMem method gives us $4\times$ performance gains against the naive implementation. 
+We see that SharedMem performs the best, with Thread Coarsening coming very close. Sometimes, if code is not highly parallelizable with deep reuse, like matrix multiplication, thread coarsening may have diminishing returns. And we see that is the case here with quantum simulation. In the end, SharedMem method gives us $4\times$ performance gains against the naive implementation.
 
 \bibliographystyle{ieeetr}
 \bibliography{references}
