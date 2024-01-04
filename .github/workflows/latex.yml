@@ -61,7 +61,7 @@ jobs:
         name: project-pdfs
         path: latex/*.pdf
 
-    - name: Upload Project PDFs
+    - name: Upload HW PDFs
       uses: actions/upload-artifact@v3
       with:
         name: hw-pdfs
