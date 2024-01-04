@@ -19,5 +19,9 @@ build
 *.fdb_latexmk
 *.fls
 *.DS_Store
+*.bbl
+*.blg
+*.bak*
+*_minted-*
 
 build

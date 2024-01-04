@@ -77,57 +77,57 @@ Case (1): Branch at \verb|PC=x0090| is taken for all 8 threads in a warp (no div
 
 % Create a table
 \begin{table}[H]
-    \centering % used for centering table
-    \begin{tabular}{c c c c c c} % centered columns (4 columns)
-    \hline\hline %inserts double horizontal lines
-    PC & Active Mask & TOS & TOS-1 & TOS-2 & Comments \\ [0.5ex] % inserts table
-    %heading
-    \hline % inserts single horizontal line
-    0000 & \verb|11111111| & & & & \\
-    0020 & \verb|11111111| & & & & Before SSY \\
-    0028 & \verb|11111111| & \verb|SSY 0xf0| & & & After SSY \\
-    0090 & \verb|11111111| & \verb|SSY 0xf0| & & & Before Branch \\
-    00b8 & \verb|11111111| & \verb|SSY 0xf0| & & & After Branch \\
-    ...  & \verb|11111111| & \verb|SSY 0xf0| & & & \\ 
-    00e8 & \verb|11111111| & \verb|SSY 0xf0| & & & NOP.S (pop)\\
-    00f0 & \verb|11111111| & & & & LD.E \\
-    00f8 & \verb|11111111| & & & & LD.E \\
-    0100 & \verb|11111111| & & & & LD.E \\
-    ...  & \verb|11111111| & & & & \\
-    0140 & \verb|11111111| & & & & EXIT \\
+	\centering % used for centering table
+	\begin{tabular}{c c c c c c} % centered columns (4 columns)
+		\hline\hline %inserts double horizontal lines
+		PC   & Active Mask     & TOS             & TOS-1 & TOS-2 & Comments      \\ [0.5ex] % inserts table
+		%heading
+		\hline % inserts single horizontal line
+		0000 & \verb|11111111| &                 &       &       &               \\
+		0020 & \verb|11111111| &                 &       &       & Before SSY    \\
+		0028 & \verb|11111111| & \verb|SSY 0xf0| &       &       & After SSY     \\
+		0090 & \verb|11111111| & \verb|SSY 0xf0| &       &       & Before Branch \\
+		00b8 & \verb|11111111| & \verb|SSY 0xf0| &       &       & After Branch  \\
+		...  & \verb|11111111| & \verb|SSY 0xf0| &       &       &               \\
+		00e8 & \verb|11111111| & \verb|SSY 0xf0| &       &       & NOP.S (pop)   \\
+		00f0 & \verb|11111111| &                 &       &       & LD.E          \\
+		00f8 & \verb|11111111| &                 &       &       & LD.E          \\
+		0100 & \verb|11111111| &                 &       &       & LD.E          \\
+		...  & \verb|11111111| &                 &       &       &               \\
+		0140 & \verb|11111111| &                 &       &       & EXIT          \\
 
-\hline %inserts single line
-\end{tabular}
-\label{table:nonlin} % is used to refer this table in the text
+		\hline %inserts single line
+	\end{tabular}
+	\label{table:nonlin} % is used to refer this table in the text
 \end{table}
 
 Case (2): Branch at \verb|PC=x0090| is taken for first two threads and not taken for other 6 (divergence)
 % Create a table
 \begin{table}[H]
-    \centering % used for centering table
-    \begin{tabular}{c c c c c c} % centered columns (4 columns)
-    \hline\hline %inserts double horizontal lines
-    PC & Active Mask & TOS & TOS-1 & TOS-2 & Comments \\ [0.5ex] % inserts table
-    %heading
-    \hline % inserts single horizontal line
-    0000 & \verb|11111111| & & & & \\
-    0020 & \verb|11111111| & & & & Before SSY \\
-    0028 & \verb|11111111| & \verb|SSY 0xf0| & & & After SSY \\
-    0090 & \verb|00111111| & \verb|SSY 0xf0| & & & Before Branch \\
-    0098 & \verb|00111111| & \verb|DIV 0xf0 0xb8| & \verb|SSY 0xf0| & & After Branch \\
-    ...  & \verb|00111111| & \verb|DIV 0xf0 0xb8| & \verb|SSY 0xf0| & & \\
-    00b0 & \verb|00111111| & \verb|DIV 0xf0 0xb8| & \verb|SSY 0xf0| & & Before ST.E.S (pop)\\
-    00b8 & \verb|11000000| & \verb|SSY 0xf0| & & & After ST.E.S \\
-    ...  & \verb|11000000| & \verb|SSY 0xf0| & & & \\
-    00e8 & \verb|11000000| & \verb|SSY 0xf0| & & & NOP.S (pop)\\
-    00f0 & \verb|11111111| & & & & LD.E \\
-    00f8 & \verb|11111111| & & & & LD.E \\
-    0100 & \verb|11111111| & & & & LD.E \\
-    ...  & \verb|11111111| & & & & \\
-    0140 & \verb|11111111| & & & & EXIT \\
-\hline %inserts single line
-\end{tabular}
-\label{table:nonlin} % is used to refer this table in the text
+	\centering % used for centering table
+	\begin{tabular}{c c c c c c} % centered columns (4 columns)
+		\hline\hline %inserts double horizontal lines
+		PC   & Active Mask     & TOS                  & TOS-1           & TOS-2 & Comments            \\ [0.5ex] % inserts table
+		%heading
+		\hline % inserts single horizontal line
+		0000 & \verb|11111111| &                      &                 &       &                     \\
+		0020 & \verb|11111111| &                      &                 &       & Before SSY          \\
+		0028 & \verb|11111111| & \verb|SSY 0xf0|      &                 &       & After SSY           \\
+		0090 & \verb|00111111| & \verb|SSY 0xf0|      &                 &       & Before Branch       \\
+		0098 & \verb|00111111| & \verb|DIV 0xf0 0xb8| & \verb|SSY 0xf0| &       & After Branch        \\
+		...  & \verb|00111111| & \verb|DIV 0xf0 0xb8| & \verb|SSY 0xf0| &       &                     \\
+		00b0 & \verb|00111111| & \verb|DIV 0xf0 0xb8| & \verb|SSY 0xf0| &       & Before ST.E.S (pop) \\
+		00b8 & \verb|11000000| & \verb|SSY 0xf0|      &                 &       & After ST.E.S        \\
+		...  & \verb|11000000| & \verb|SSY 0xf0|      &                 &       &                     \\
+		00e8 & \verb|11000000| & \verb|SSY 0xf0|      &                 &       & NOP.S (pop)         \\
+		00f0 & \verb|11111111| &                      &                 &       & LD.E                \\
+		00f8 & \verb|11111111| &                      &                 &       & LD.E                \\
+		0100 & \verb|11111111| &                      &                 &       & LD.E                \\
+		...  & \verb|11111111| &                      &                 &       &                     \\
+		0140 & \verb|11111111| &                      &                 &       & EXIT                \\
+		\hline %inserts single line
+	\end{tabular}
+	\label{table:nonlin} % is used to refer this table in the text
 \end{table}
 \newpage
 

@@ -47,8 +47,23 @@ jobs:
       working-directory: latex
       run: make all
 
-    - name: Upload PDFs
+    - name: Check LaTeX formatting
+      working-directory: hw
+      run: make check
+
+    - name: Compile LaTeX documents
+      working-directory: hw
+      run: make all
+
+    - name: Upload Project PDFs
       uses: actions/upload-artifact@v3
       with:
-        name: Compiled-PDFs
+        name: project-pdfs
         path: latex/*.pdf
+
+    - name: Upload Project PDFs
+      uses: actions/upload-artifact@v3
+      with:
+        name: hw-pdfs
+        path: hw/*.pdf
+  
