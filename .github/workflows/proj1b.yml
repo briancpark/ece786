@@ -9,14 +9,15 @@ on:
     # Schedule to run at 00:00 UTC on the 1st of every month
     - cron: '0 0 1 * *'
 
+env:
+  ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+
 jobs:
   build-and-run:
     runs-on: ubuntu-latest
     container: 
       image: pli11/gpgpusim:cuda_10_1
-    env:
-      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
-
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
