@@ -28,6 +28,7 @@ jobs:
         git checkout tags/v4.0.1 -b v401
         source setup_environment
         make -j
+      shell: bash
 
     - name: Clone and build vectorAdd
       run: |
@@ -36,6 +37,7 @@ jobs:
         git clone https://github.com/peiyi1/vectorAdd.git
         cd vectorAdd/
         make -j
+      shell: bash
 
     - name: Run vectorAdd
       run: |
@@ -44,6 +46,7 @@ jobs:
         cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
         ./vectorAdd > output.txt
         cat output.txt
+      shell: bash
 
     - name: Upload output
       uses: actions/upload-artifact@v3
