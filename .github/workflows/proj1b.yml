@@ -32,6 +32,7 @@ jobs:
 
     - name: Clone and build vectorAdd
       run: |
+        source /root/gpgpu-sim_distribution/setup_environment
         cd /root
         git clone https://github.com/peiyi1/vectorAdd.git
         cd vectorAdd/
@@ -40,6 +41,7 @@ jobs:
 
     - name: Run vectorAdd
       run: |
+        source /root/gpgpu-sim_distribution/setup_environment
         cd /root/vectorAdd/
         cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
         ./vectorAdd > output.txt
