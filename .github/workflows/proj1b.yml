@@ -18,15 +18,16 @@ jobs:
     container: 
       image: pli11/gpgpusim:cuda_10_1
       options: --user root
-
+    env:
+      CUDA_INSTALL_PATH: /usr/local/cuda-10.1
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    - name: Set CUDA path
+    - name: Set CUDA path globally
       run: |
-        export CUDA_INSTALL_PATH=/usr/local/cuda-10.1
-        export PATH=$CUDA_INSTALL_PATH/bin:$PATH
+        echo "CUDA_INSTALL_PATH=/usr/local/cuda-10.1" >> $GITHUB_ENV
+        echo "PATH=$CUDA_INSTALL_PATH/bin:$PATH" >> $GITHUB_ENV
       shell: bash
 
     - name: Set up GPGPU-Sim
