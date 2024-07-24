@@ -1,3 +1,6 @@
 [submodule "proj/proj1/proj1b/gpgpu-sim_distribution"]
 	path = proj/proj1/proj1b/gpgpu-sim_distribution
 	url = https://github.com/gpgpu-sim/gpgpu-sim_distribution.git
+[submodule "proj/gpgpu-sim_distribution"]
+	path = proj/gpgpu-sim_distribution
+	url = git@github.com:briancpark/gpgpu-sim_distribution.git
