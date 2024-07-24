@@ -10,55 +10,42 @@ on:
     - cron: '0 0 1 * *'
 
 jobs:
-  checkout-code:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      - name: Upload source code
-        uses: actions/upload-artifact@v2
-        with:
-          name: source-code
-          path: .
-
   build-and-run:
     runs-on: ubuntu-latest
     container: 
       image: pli11/gpgpusim:cuda_10_1
-    needs: checkout-code
+    env:
+      ACTIONS_ALLOW_UNSECURE_COMMANDS: true
 
     steps:
-      - name: Download source code
-        uses: actions/download-artifact@v2
-        with:
-          name: source-code
-          path: .
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up GPGPU-Sim
-        run: |
-          cd /root/gpgpu-sim_distribution/
-          git checkout tags/v4.0.1 -b v401
-          make clean
-          source setup_environment
-          make
+    - name: Set up GPGPU-Sim
+      run: |
+        cd /root/gpgpu-sim_distribution/
+        git checkout tags/v4.0.1 -b v401
+        make clean
+        source setup_environment
+        make
 
-      - name: Clone and build vectorAdd
-        run: |
-          cd /root
-          git clone https://github.com/peiyi1/vectorAdd.git
-          cd vectorAdd/
-          make clean
-          make
+    - name: Clone and build vectorAdd
+      run: |
+        cd /root
+        git clone https://github.com/peiyi1/vectorAdd.git
+        cd vectorAdd/
+        make clean
+        make
 
-      - name: Run vectorAdd
-        run: |
-          cd /root/vectorAdd/
-          cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
-          ./vectorAdd > output.txt
-          cat output.txt
+    - name: Run vectorAdd
+      run: |
+        cd /root/vectorAdd/
+        cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
+        ./vectorAdd > output.txt
+        cat output.txt
 
-      - name: Upload output
-        uses: actions/upload-artifact@v2
-        with:
-          name: vectorAdd-output
-          path: /root/vectorAdd/output.txt
+    - name: Upload output
+      uses: actions/upload-artifact@v2
+      with:
+        name: vectorAdd-output
+        path: /root/vectorAdd/output.txt
