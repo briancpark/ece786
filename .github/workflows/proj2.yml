@@ -38,7 +38,6 @@ jobs:
         cp /github/workspace/proj/proj2/cuda-sim/instructions.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/cuda-sim/instructions.cc
         cd /root/gpgpu-sim_distribution
         make -j
-        source setup_environment
         cd /root/vectorAdd
         make -j
         cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
@@ -52,7 +51,6 @@ jobs:
         cd /root/gpgpu-sim_distribution
         git checkout -- .
         make -j
-        source setup_environment
         mkdir -p test
         cp -r /github/workspace/proj/proj2/ISPASS.zip test/
         cd test
@@ -90,3 +88,36 @@ jobs:
           cd ..
         done
       shell: bash
+
+
+    - name: Build and Run Task 3
+      run: |
+        source /root/gpgpu-sim_distribution/setup_environment
+        git checkout tags/v4.0.1 -b v401
+        cp /github/workspace/proj/proj2/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.cc
+        cp /github/workspace/proj/proj2/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.h
+        cd /root/gpgpu-sim_distribution
+        make -j
+        cd /root/vectorAdd
+        make -j
+        cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
+        nvcc -arch=sm_70 -o vectorAdd vectorAdd.cu
+        ./vectorAdd > output.txt
+      shell: bash
+
+
+
+    - name: Build and Run Task 4
+      run: |
+        source /root/gpgpu-sim_distribution/setup_environment
+        git checkout tags/v4.0.1 -b v401
+        cp /github/workspace/proj/proj2/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task4/shader.cc
+        cp /github/workspace/proj/proj2/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task4/shader.h
+        cd /root/gpgpu-sim_distribution
+        make -j
+        cd /root/vectorAdd
+        make -j
+        cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
+        nvcc -arch=sm_70 -o vectorAdd vectorAdd.cu
+        ./vectorAdd > output.txt
+        shell: bash
