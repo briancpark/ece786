@@ -32,7 +32,6 @@ jobs:
 
     - name: Set up GPGPU-Sim
       run: |
-        source /root/.bashrc
         export PATH=$CUDA_INSTALL_PATH/bin/:$PATH
         cd /root/gpgpu-sim_distribution
         git checkout tags/v4.0.1 -b v401
@@ -43,6 +42,7 @@ jobs:
 
     - name: Clone and build vectorAdd
       run: |
+        export PATH=$CUDA_INSTALL_PATH/bin/:$PATH
         source /root/gpgpu-sim_distribution/setup_environment
         cd /root
         git clone https://github.com/peiyi1/vectorAdd.git
@@ -52,6 +52,7 @@ jobs:
 
     - name: Run vectorAdd
       run: |
+        export PATH=$CUDA_INSTALL_PATH/bin/:$PATH
         source /root/gpgpu-sim_distribution/setup_environment
         cd /root/vectorAdd/
         cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
