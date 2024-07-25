@@ -27,18 +27,12 @@ jobs:
     - name: Set CUDA path globally
       run: |
         echo "CUDA_INSTALL_PATH=/usr/local/cuda-10.1" >> $GITHUB_ENV
+        echo "CUDA_PATH=$CUDA_INSTALL_PATH" >> $GITHUB_ENV
         echo "PATH=$CUDA_INSTALL_PATH/bin:$PATH" >> $GITHUB_ENV
       shell: bash
 
-    - name: Debug CUDA Installation
-      run: |
-        echo "Checking CUDA_INSTALL_PATH contents..."
-        ls -alh $CUDA_INSTALL_PATH/bin
-        echo "Current PATH: $PATH"
-      shell: bash
     - name: Set up GPGPU-Sim
       run: |
-        export PATH=$CUDA_INSTALL_PATH/bin/:$PATH
         cd /root/gpgpu-sim_distribution
         git checkout tags/v4.0.1 -b v401
         make clean
@@ -48,17 +42,14 @@ jobs:
 
     - name: Clone and build vectorAdd
       run: |
-        export PATH=$CUDA_INSTALL_PATH/bin/:$PATH
         source /root/gpgpu-sim_distribution/setup_environment
         cd /root
         git clone https://github.com/peiyi1/vectorAdd.git
         cd vectorAdd/
         make -j
       shell: bash
-
     - name: Run vectorAdd
       run: |
-        export PATH=$CUDA_INSTALL_PATH/bin/:$PATH
         source /root/gpgpu-sim_distribution/setup_environment
         cd /root/vectorAdd/
         cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
