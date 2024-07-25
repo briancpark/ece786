@@ -43,10 +43,10 @@ jobs:
     - name: Clone and build vectorAdd
       run: |
         export PATH=$CUDA_INSTALL_PATH/bin/:$PATH
-        source /root/gpgpu-sim_distribution/setup_environment
         cd /root
         git clone https://github.com/peiyi1/vectorAdd.git
         cd vectorAdd/
+        source /root/gpgpu-sim_distribution/setup_environment
         make -j
       shell: bash
 
