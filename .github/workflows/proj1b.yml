@@ -46,6 +46,7 @@ jobs:
         cd /root
         git clone https://github.com/peiyi1/vectorAdd.git
         cd vectorAdd/
+        source /root/.bashrc
         source /root/gpgpu-sim_distribution/setup_environment
         make -j
       shell: bash
