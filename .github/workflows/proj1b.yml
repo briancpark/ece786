@@ -38,24 +38,10 @@ jobs:
         make clean
         source setup_environment
         make -j
-      shell: bash
-
-    - name: Clone and build vectorAdd
-      run: |
-        export PATH=$CUDA_INSTALL_PATH/bin/:$PATH
         cd /root
         git clone https://github.com/peiyi1/vectorAdd.git
         cd vectorAdd/
-        source /root/.bashrc
-        source /root/gpgpu-sim_distribution/setup_environment
         make -j
-      shell: bash
-
-    - name: Run vectorAdd
-      run: |
-        export PATH=$CUDA_INSTALL_PATH/bin/:$PATH
-        source /root/gpgpu-sim_distribution/setup_environment
-        cd /root/vectorAdd/
         cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
         ./vectorAdd > output.txt
         cat output.txt
