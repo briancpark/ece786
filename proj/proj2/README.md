@@ -23,6 +23,7 @@ source setup_environment
 cd /root/vectorAdd
 make -j
 cp ~/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
+nvcc -arch=sm_70 -o vectorAdd vectorAdd.cu
 ./vectorAdd
 ```
 
