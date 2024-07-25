@@ -34,6 +34,7 @@ jobs:
     - name: Build and Run Task 1
       run: |
         source /root/gpgpu-sim_distribution/setup_environment
+        cd /root/gpgpu-sim_distribution
         git checkout tags/v4.0.1 -b v401
         cp /github/workspace/proj/proj2/cuda-sim/instructions.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/cuda-sim/instructions.cc
         cd /root/gpgpu-sim_distribution
@@ -93,6 +94,7 @@ jobs:
     - name: Build and Run Task 3
       run: |
         source /root/gpgpu-sim_distribution/setup_environment
+        cd /root/gpgpu-sim_distribution
         git checkout tags/v4.0.1 -b v401
         cp /github/workspace/proj/proj2/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.cc
         cp /github/workspace/proj/proj2/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.h
