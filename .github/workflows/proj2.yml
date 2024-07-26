@@ -31,14 +31,18 @@ jobs:
         echo "PATH=$CUDA_INSTALL_PATH/bin:$PATH" >> $GITHUB_ENV
       shell: bash
 
+    - name: Copy repository contents to container
+      run: |
+        mkdir -p /workspace
+        cp -R $GITHUB_WORKSPACE/* /workspace/
+      shell: bash
+
     - name: Build and Run Task 1
       run: |
         source /root/gpgpu-sim_distribution/setup_environment
         cd /root/gpgpu-sim_distribution
         git checkout tags/v4.0.1 -b v401
-        ls /github/workspace
-        cp /github/workspace/proj/proj2/cuda-sim/instructions.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/cuda-sim/instructions.cc
-        cd /root/gpgpu-sim_distribution
+        cp /workspace/proj/proj2/cuda-sim/instructions.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/cuda-sim/instructions.cc
         make -j
         cd /root/vectorAdd
         make -j
@@ -54,7 +58,7 @@ jobs:
         git checkout -- .
         make -j
         mkdir -p test
-        cp -r /github/workspace/proj/proj2/ISPASS.zip test/
+        cp -r /workspace/proj/proj2/ISPASS.zip test/
         cd test
         unzip ISPASS.zip
         cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM6_TITANX/* .
@@ -91,15 +95,13 @@ jobs:
         done
       shell: bash
 
-
     - name: Build and Run Task 3
       run: |
         source /root/gpgpu-sim_distribution/setup_environment
         cd /root/gpgpu-sim_distribution
         git checkout tags/v4.0.1 -b v401
-        cp /github/workspace/proj/proj2/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.cc
-        cp /github/workspace/proj/proj2/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.h
-        cd /root/gpgpu-sim_distribution
+        cp /workspace/proj/proj2/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.cc
+        cp /workspace/proj/proj2/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.h
         make -j
         cd /root/vectorAdd
         make -j
@@ -108,14 +110,12 @@ jobs:
         ./vectorAdd > output.txt
       shell: bash
 
-
-
     - name: Build and Run Task 4
       run: |
         source /root/gpgpu-sim_distribution/setup_environment
         git checkout tags/v4.0.1 -b v401
-        cp /github/workspace/proj/proj2/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task4/shader.cc
-        cp /github/workspace/proj/proj2/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task4/shader.h
+        cp /workspace/proj/proj2/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task4/shader.cc
+        cp /workspace/proj/proj2/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task4/shader.h
         cd /root/gpgpu-sim_distribution
         make -j
         cd /root/vectorAdd
@@ -123,4 +123,4 @@ jobs:
         cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
         nvcc -arch=sm_70 -o vectorAdd vectorAdd.cu
         ./vectorAdd > output.txt
-        shell: bash
+      shell: bash
