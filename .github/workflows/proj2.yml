@@ -44,6 +44,7 @@ jobs:
         git checkout tags/v4.0.1 -b v401
         cp /workspace/proj/proj2/cuda-sim/instructions.cc /root/gpgpu-sim_distribution/src/cuda-sim/instructions.cc
         cp /workspace/proj/proj2/vectorAdd.cu /root/vectorAdd.cu
+        cd root
         cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
         nvcc -arch=sm_70 -o vectorAdd vectorAdd.cu
         ./vectorAdd > output.txt
