@@ -46,7 +46,7 @@ jobs:
         cp /workspace/proj/proj2/vectorAdd.cu /root/vectorAdd.cu
         cd /root
         cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
-        nvcc -arch=sm_70 -o vectorAdd vectorAdd.cu
+        nvcc -arch=sm_70 -O2 --cudart=shared -o vectorAdd vectorAdd.cu
         ./vectorAdd > output.txt
       shell: bash
     
