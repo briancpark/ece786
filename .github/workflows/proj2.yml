@@ -123,8 +123,8 @@ jobs:
         source /root/gpgpu-sim_distribution/setup_environment
         cd /root/gpgpu-sim_distribution
         git checkout -- .
-        cp /workspace/proj/proj2/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.cc
-        cp /workspace/proj/proj2/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.h
+        cp /workspace/proj/proj2/task3/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.cc
+        cp /workspace/proj/proj2/task3/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.h
         make -j
         cd /root
         cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
@@ -136,8 +136,8 @@ jobs:
       run: |
         source /root/gpgpu-sim_distribution/setup_environment
         git checkout -- .
-        cp /workspace/proj/proj2/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task4/shader.cc
-        cp /workspace/proj/proj2/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task4/shader.h
+        cp /workspace/proj/proj2/gpgpu-sim/task4/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task4/shader.cc
+        cp /workspace/proj/proj2/gpgpu-sim/task4/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task4/shader.h
         cd /root/gpgpu-sim_distribution
         make -j
         cd /root
