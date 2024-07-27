@@ -43,8 +43,8 @@ jobs:
         source /root/gpgpu-sim_distribution/setup_environment
         cd /root/gpgpu-sim_distribution
         git checkout tags/v4.0.1 -b v401
-        cp /workspace/proj/proj3a/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.cc
-        cp /workspace/proj/proj3a/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.h
+        cp /workspace/proj/proj3/proj3a/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.cc
+        cp /workspace/proj/proj3/proj3a/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.h
         make -j
         mkdir -p test
         cp -r /workspace/proj/proj2/ISPASS /root/gpgpu-sim_distribution/test
