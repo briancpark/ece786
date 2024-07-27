@@ -22,4 +22,3 @@ cd /root/rodinia
 cp ~/gpgpu-sim_distribution/configs/tested-cfgs/SM2_GTX480/* .
 make clean && make && ./quamsimV1 input/input_for_qc7_q0_q2_q3_q4_q5_q6.txt 
 ```
-
