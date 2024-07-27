@@ -63,8 +63,8 @@ jobs:
         cd /root/gpgpu-sim_distribution/test/ISPASS
         for benchmark in BFS LIB LPS NN NQU; do
           cd $benchmark
-          cp ../../SM6_TITANX/gpgpusim.config .
-          cp ../../SM6_TITANX/config_pascal_islip.icnt .
+          cp ../../gpgpusim.config .
+          cp ../../config_pascal_islip.icnt .
           # Specific commands for each benchmark
           case $benchmark in
             BFS)
@@ -88,8 +88,8 @@ jobs:
           esac
 
           cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_TITANV/* /root/gpgpu-sim_distribution/test
-          cp ../../SM7_TITANV/gpgpusim.config .
-          cp ../../SM7_TITANV/config_volta_islip.icnt .
+          cp ../../gpgpusim.config .
+          cp ../../config_volta_islip.icnt .
           # Specific commands for each benchmark
           case $benchmark in
             BFS)
