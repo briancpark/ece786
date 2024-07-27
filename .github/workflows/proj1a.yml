@@ -1,20 +1,20 @@
 name: Proj1A
 
 on:
-    push:
-      branches: [ main ]
-    pull_request:
-      branches: [ main ]
-    schedule:
-      # Schedule to run at 00:00 UTC on the 1st of every month
-      - cron: '0 0 1 * *'
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Schedule to run at 00:00 UTC on the 1st of every month
+    - cron: '0 0 1 * *'
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - uses: Jimver/cuda-toolkit@v0.2.8
         id: cuda-toolkit
         with:
