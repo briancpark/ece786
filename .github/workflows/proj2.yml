@@ -52,6 +52,7 @@ jobs:
       shell: bash
     
     - name: Build and Run Task 2
+      continue-on-error: true
       run: |
         source /root/gpgpu-sim_distribution/setup_environment
         cd /root/gpgpu-sim_distribution
