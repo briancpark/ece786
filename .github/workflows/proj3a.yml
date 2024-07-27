@@ -1,4 +1,4 @@
-name: Proj2
+name: Proj3A
 
 on:
   push:
@@ -37,26 +37,14 @@ jobs:
         cp -R $GITHUB_WORKSPACE/* /workspace/
       shell: bash
     
-    - name: Build and Run Task 1
-      run: |
-        source /root/gpgpu-sim_distribution/setup_environment
-        cd /root/gpgpu-sim_distribution
-        git checkout tags/v4.0.1 -b v401
-        cp /workspace/proj/proj2/cuda-sim/instructions.cc /root/gpgpu-sim_distribution/src/cuda-sim/instructions.cc
-        cp /workspace/proj/proj2/vectorAdd.cu /root/vectorAdd.cu
-        make -j
-        cd /root
-        cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
-        nvcc -arch=sm_70 -O2 --cudart=shared -o vectorAdd vectorAdd.cu
-        ./vectorAdd > output_task1.txt
-      shell: bash
-    
-    - name: Build and Run Task 2
+    - name: Build and Run
       continue-on-error: true
       run: |
         source /root/gpgpu-sim_distribution/setup_environment
         cd /root/gpgpu-sim_distribution
-        git checkout -- .
+        git checkout tags/v4.0.1 -b v401
+        cp /workspace/proj/proj3a/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.cc
+        cp /workspace/proj/proj3a/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.h
         make -j
         mkdir -p test
         cp -r /workspace/proj/proj2/ISPASS /root/gpgpu-sim_distribution/test
@@ -117,37 +105,3 @@ jobs:
           cd ..
         done
       shell: bash
-
-    - name: Build and Run Task 3
-      run: |
-        source /root/gpgpu-sim_distribution/setup_environment
-        cd /root/gpgpu-sim_distribution
-        git checkout -- .
-        cp /workspace/proj/proj2/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.cc
-        cp /workspace/proj/proj2/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task3/shader.h
-        make -j
-        cd /root
-        cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
-        nvcc -arch=sm_70 -O2 --cudart=shared -o vectorAdd vectorAdd.cu
-        ./vectorAdd > output_task3.txt
-      shell: bash
-
-    - name: Build and Run Task 4
-      run: |
-        source /root/gpgpu-sim_distribution/setup_environment
-        git checkout -- .
-        cp /workspace/proj/proj2/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task4/shader.cc
-        cp /workspace/proj/proj2/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/gpgpu-sim/task4/shader.h
-        cd /root/gpgpu-sim_distribution
-        make -j
-        cd /root
-        cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
-        nvcc -arch=sm_70 -O2 --cudart=shared -o vectorAdd vectorAdd.cu
-        ./vectorAdd > output_task4.txt
-      shell: bash
-
-    - name: Upload Task 2 Output
-      uses: actions/upload-artifact@v2
-      with:
-        name: task-2-output
-        path: test/**/output.txt
