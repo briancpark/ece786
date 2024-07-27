@@ -64,6 +64,7 @@ jobs:
         for benchmark in BFS LIB LPS NN NQU; do
           cd $benchmark
           cp ../../gpgpusim.config .
+          echo "-gpgpu_max_insn 100000000" >> gpgpusim.config
           cp ../../config_pascal_islip.icnt .
           # Specific commands for each benchmark
           case $benchmark in
@@ -89,6 +90,7 @@ jobs:
 
           cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_TITANV/* /root/gpgpu-sim_distribution/test
           cp ../../gpgpusim.config .
+          echo "-gpgpu_max_insn 100000000" >> gpgpusim.config
           cp ../../config_volta_islip.icnt .
           # Specific commands for each benchmark
           case $benchmark in
