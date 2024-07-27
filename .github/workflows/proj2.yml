@@ -61,35 +61,39 @@ jobs:
         cp -r /workspace/proj/proj2/ISPASS /root/gpgpu-sim_distribution/test
         cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM6_TITANX/* /root/gpgpu-sim_distribution/test
         cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_TITANV/* /root/gpgpu-sim_distribution/test
-        cd /root/gpgpu-sim_distribution/test
+        cd /root/gpgpu-sim_distribution/test/ISPASS
         for benchmark in BFS LIB LPS NN NQU; do
-          cd $benchmark
-          ln -sf ../../SM6_TITANX/gpgpusim.config .
-          ln -sf ../../SM6_TITANX/config_fermi_islip.icnt .
-          ln -sf ../../SM7_TITANV/gpgpusim.config .
-          ln -sf ../../SM7_TITANV/config_volta_islip.icnt .
-          # Specific commands for each benchmark
-          case $benchmark in
-            BFS)
-              ./ispass-2009-BFS graph65536.txt
-              ;;
-            LIB)
-              ./ispass-2009-LIB
-              ;;
-            LPS)
-              ./ispass-2009-LPS
-              ;;
-            NN)
-              mkdir -p data/
-              cp ../../lw*.wei data/
-              cp ../../t10k-images-idx3-ubyte data/
-              ./ispass-2009-NN 28
-              ;;
-            NQU)
-              ./ispass-2009-NQU
-              ;;
-          esac
-          cd ..
+          if [ -d "$benchmark" ]; then
+            cd $benchmark
+            ln -sf ../../SM6_TITANX/gpgpusim.config .
+            ln -sf ../../SM6_TITANX/config_fermi_islip.icnt .
+            ln -sf ../../SM7_TITANV/gpgpusim.config .
+            ln -sf ../../SM7_TITANV/config_volta_islip.icnt .
+            # Specific commands for each benchmark
+            case $benchmark in
+              BFS)
+                ./ispass-2009-BFS graph65536.txt
+                ;;
+              LIB)
+                ./ispass-2009-LIB
+                ;;
+              LPS)
+                ./ispass-2009-LPS
+                ;;
+              NN)
+                mkdir -p data/
+                cp ../../lw*.wei data/
+                cp ../../t10k-images-idx3-ubyte data/
+                ./ispass-2009-NN 28
+                ;;
+              NQU)
+                ./ispass-2009-NQU
+                ;;
+            esac
+            cd ..
+          else
+            echo "Warning: Directory $benchmark does not exist."
+          fi
         done
       shell: bash
 
