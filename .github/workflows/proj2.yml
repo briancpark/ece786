@@ -135,10 +135,10 @@ jobs:
     - name: Build and Run Task 4
       run: |
         source /root/gpgpu-sim_distribution/setup_environment
+        cd /root/gpgpu-sim_distribution
         git checkout -- .
         cp /workspace/proj/proj2/gpgpu-sim/task4/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/shader.cc
         cp /workspace/proj/proj2/gpgpu-sim/task4/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/shader.h
-        cd /root/gpgpu-sim_distribution
         make -j
         cd /root
         cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
