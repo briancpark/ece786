@@ -58,10 +58,10 @@ jobs:
         git checkout -- .
         make -j
         mkdir -p test
-        cp -r /workspace/proj/proj2/ISPASS /root/gpgpu-sim_distribution/test/
-        cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM6_TITANX/* .
-        cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_TITANV/* .
-        # Assuming ISPASS contains directories for each benchmark
+        cp -r /workspace/proj/proj2/ISPASS /root/gpgpu-sim_distribution/test
+        cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM6_TITANX/* /root/gpgpu-sim_distribution/test
+        cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_TITANV/* /root/gpgpu-sim_distribution/test
+        cd /root/gpgpu-sim_distribution/test
         for benchmark in BFS LIB LPS NN NQU; do
           cd $benchmark
           ln -sf ../../SM6_TITANX/gpgpusim.config .
