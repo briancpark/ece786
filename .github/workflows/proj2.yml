@@ -147,7 +147,7 @@ jobs:
       shell: bash
 
     - name: Upload Task 2 Output
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: task-2-output
         path: test/**/output.txt
