@@ -56,9 +56,3 @@ jobs:
         ./vectorAdd > output.txt
         cat output.txt
       shell: bash
-
-    - name: Upload output
-      uses: actions/upload-artifact@v1
-      with:
-        name: vectorAdd-output
-        path: /root/vectorAdd/output.txt

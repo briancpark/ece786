@@ -145,9 +145,3 @@ jobs:
         nvcc -arch=sm_70 -O2 --cudart=shared -o vectorAdd vectorAdd.cu
         ./vectorAdd > output_task4.txt
       shell: bash
-
-    - name: Upload Task 2 Output
-      uses: actions/upload-artifact@v1
-      with:
-        name: task-2-output
-        path: test/**/output.txt
