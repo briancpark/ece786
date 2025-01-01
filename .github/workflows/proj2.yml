@@ -14,7 +14,7 @@ env:
   
 jobs:
   build-and-run:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-22.04
     container: 
       image: pli11/gpgpusim:cuda_10_1
       options: --user root
@@ -22,7 +22,7 @@ jobs:
       CUDA_INSTALL_PATH: /usr/local/cuda-10.1
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v1
 
     - name: Set CUDA path globally
       run: |
@@ -145,9 +145,3 @@ jobs:
         nvcc -arch=sm_70 -O2 --cudart=shared -o vectorAdd vectorAdd.cu
         ./vectorAdd > output_task4.txt
       shell: bash
-
-    - name: Upload Task 2 Output
-      uses: actions/upload-artifact@v3
-      with:
-        name: task-2-output
-        path: test/**/output.txt
