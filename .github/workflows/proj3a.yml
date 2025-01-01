@@ -23,8 +23,8 @@ jobs:
 
     - name: Install Docker
       run: |
-        apt-get update
-        apt-get install -y docker.io
+        sudo apt-get update
+        sudo apt-get install -y docker.io
       shell: bash
 
     - name: Pull Docker image
