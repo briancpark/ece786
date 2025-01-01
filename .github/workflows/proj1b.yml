@@ -15,56 +15,46 @@ env:
 jobs:
   build-and-run:
     runs-on: ubuntu-20.04
+    container: 
+      image: pli11/gpgpusim:cuda_10_1
+      options: --user root
     env:
       CUDA_INSTALL_PATH: /usr/local/cuda-10.1
     steps:
     - name: Checkout code
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
-    - name: Install Docker
+    - name: Set CUDA path globally
       run: |
-        sudo apt-get update
-        sudo apt-get install -y docker.io
-      shell: bash
-
-    - name: Pull Docker image
-      run: |
-        docker pull pli11/gpgpusim:cuda_10_1
-      shell: bash
-
-    - name: Run Docker container
-      run: |
-        docker run -w /root -itd --name gpgpusim pli11/gpgpusim:cuda_10_1 /bin/bash
+        echo "CUDA_INSTALL_PATH=/usr/local/cuda-10.1" >> $GITHUB_ENV
+        echo "CUDA_PATH=$CUDA_INSTALL_PATH" >> $GITHUB_ENV
+        echo "PATH=$CUDA_INSTALL_PATH/bin:$PATH" >> $GITHUB_ENV
       shell: bash
 
     - name: Set up GPGPU-Sim
       run: |
-        docker exec -i gpgpusim bash -c "
-          cd /root/gpgpu-sim_distribution &&
-          git checkout tags/v4.0.1 -b v401 &&
-          make clean &&
-          source setup_environment &&
-          make -j"
+        cd /root/gpgpu-sim_distribution
+        git checkout tags/v4.0.1 -b v401
+        make clean
+        source setup_environment
+        make -j
       shell: bash
 
     - name: Clone and build vectorAdd
       run: |
-        docker exec -i gpgpusim bash -c "
-          source /root/gpgpu-sim_distribution/setup_environment &&
-          cd /root &&
-          git clone https://github.com/peiyi1/vectorAdd.git &&
-          cd vectorAdd/ &&
-          make -j"
+        source /root/gpgpu-sim_distribution/setup_environment
+        cd /root
+        git clone https://github.com/peiyi1/vectorAdd.git
+        cd vectorAdd/
+        make -j
       shell: bash
-
     - name: Run vectorAdd
       run: |
-        docker exec -i gpgpusim bash -c "
-          source /root/gpgpu-sim_distribution/setup_environment &&
-          cd /root/vectorAdd/ &&
-          cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* . &&
-          ./vectorAdd > output.txt &&
-          cat output.txt"
+        source /root/gpgpu-sim_distribution/setup_environment
+        cd /root/vectorAdd/
+        cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM7_QV100/* .
+        ./vectorAdd > output.txt
+        cat output.txt
       shell: bash
 
     - name: Upload output
