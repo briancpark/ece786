@@ -55,12 +55,7 @@ jobs:
         ldconfig
         export LD_LIBRARY_PATH=/opt/glibc-2.28/lib:$LD_LIBRARY_PATH
       shell: bash
-
-    - name: Run Node.js Command
-      run: |
-        LD_LIBRARY_PATH=/opt/glibc-2.28/lib /__e/node20/bin/node --version
-      shell: bash
-
+      
     - name: Checkout code
       uses: actions/checkout@v3
 
