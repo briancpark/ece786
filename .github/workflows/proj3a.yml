@@ -15,90 +15,59 @@ env:
 jobs:
   build-and-run:
     runs-on: ubuntu-20.04
-    container: 
-      image: pli11/gpgpusim:cuda_10_1
-      options: --user root
     env:
       CUDA_INSTALL_PATH: /usr/local/cuda-10.1
     steps:
-    - name: Verify Environment
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Install Docker
       run: |
-        echo "Container OS:"
-        cat /etc/os-release
-        echo "User: $(id)"
+        apt-get update
+        apt-get install -y docker.io
       shell: bash
 
-    - name: Install Dependencies for GLIBC
+    - name: Pull Docker image
       run: |
-        apt-get update && apt-get install -y build-essential manpages-dev gawk python3 sed
+        docker pull pli11/gpgpusim:cuda_10_1
       shell: bash
 
-    - name: Upgrade GLIBC
+    - name: Run Docker container
       run: |
-        bash --noprofile --norc -e -o pipefail <<EOF
-        wget http://ftp.gnu.org/gnu/libc/glibc-2.28.tar.gz
-        tar -xvzf glibc-2.28.tar.gz
-        cd glibc-2.28
-        mkdir build && cd build
-        ../configure --prefix=/opt/glibc-2.28
-        make -j$(nproc)
-        make install
-        mkdir -p /opt/glibc-2.28/etc
-        echo "/opt/glibc-2.28/lib" > /opt/glibc-2.28/etc/ld.so.conf
-        ldconfig -r /opt/glibc-2.28
-        EOF
-      shell: bash
-
-    - name: Set GLIBC Path
-      run: |
-        echo "/opt/glibc-2.28/lib" > /etc/ld.so.conf.d/glibc-2.28.conf
-        ldconfig
-        export LD_LIBRARY_PATH=/opt/glibc-2.28/lib:$LD_LIBRARY_PATH
-      shell: bash
-
-    - name: Set CUDA path globally
-      run: |
-        echo "CUDA_INSTALL_PATH=/usr/local/cuda-10.1" >> $GITHUB_ENV
-        echo "CUDA_PATH=$CUDA_INSTALL_PATH" >> $GITHUB_ENV
-        echo "PATH=$CUDA_INSTALL_PATH/bin:$PATH" >> $GITHUB_ENV
+        docker run -w /root -itd --name gpgpusim pli11/gpgpusim:cuda_10_1 /bin/bash
       shell: bash
 
     - name: Copy repository contents to container
       run: |
-        mkdir -p /workspace
-        cp -R $GITHUB_WORKSPACE/* /workspace/
+        docker cp $GITHUB_WORKSPACE gpgpusim:/workspace
       shell: bash
-    
+
     - name: Build and Run
       continue-on-error: true
       run: |
-        source /root/gpgpu-sim_distribution/setup_environment
-        cd /root/gpgpu-sim_distribution
-        git checkout tags/v4.0.1 -b v401
-        cp /workspace/proj/proj3/proj3a/gpgpu-sim/shader.cc /root/gpgpu-sim_distribution/src/gpgpu-sim/shader.cc
-        cp /workspace/proj/proj3/proj3a/gpgpu-sim/shader.h /root/gpgpu-sim_distribution/src/gpgpu-sim/shader.h
-        make -j
-        mkdir -p test
-        cp -r /workspace/proj/proj2/ISPASS /root/gpgpu-sim_distribution/test
-        cp /root/gpgpu-sim_distribution/configs/tested-cfgs/SM6_TITANX/* /root/gpgpu-sim_distribution/test
-        cd /root/gpgpu-sim_distribution/test/ISPASS
-        for benchmark in BFS LIB LPS NN NQU; do
-          cd $benchmark
-          cp ../../gpgpusim.config .
-          echo "-gpgpu_max_insn 100000000" >> gpgpusim.config
-          cp ../../config_pascal_islip.icnt .
-          case $benchmark in
-            BFS) ./ispass-2009-BFS graph65536.txt ;;
-            LIB) ./ispass-2009-LIB ;;
-            LPS) ./ispass-2009-LPS ;;
-            NN)
-              mkdir -p data/
-              cp lw*.wei data/
-              cp t10k-images-idx3-ubyte data/
-              ./ispass-2009-NN 28
-              ;;
-            NQU) ./ispass-2009-NQU ;;
-          esac
-          cd ..
-        done
+        docker exec -i gpgpusim bash -c "
+          cd /root/gpgpu-sim_distribution && 
+          git checkout tags/v4.0.1 -b v401 && 
+          source setup_environment && 
+          cp /workspace/proj/proj3/proj3a/gpgpu-sim/shader.cc src/gpgpu-sim/shader.cc && 
+          cp /workspace/proj/proj3/proj3a/gpgpu-sim/shader.h src/gpgpu-sim/shader.h && 
+          make -j && 
+          mkdir -p test && 
+          cp -r /workspace/proj/proj2/ISPASS test && 
+          cp configs/tested-cfgs/SM6_TITANX/* test && 
+          cd test/ISPASS && 
+          for benchmark in BFS LIB LPS NN NQU; do 
+            cd $benchmark && 
+            cp ../../gpgpusim.config . && 
+            echo \"-gpgpu_max_insn 100000000\" >> gpgpusim.config && 
+            cp ../../config_pascal_islip.icnt . && 
+            case $benchmark in 
+              BFS) ./ispass-2009-BFS graph65536.txt ;; 
+              LIB) ./ispass-2009-LIB ;; 
+              LPS) ./ispass-2009-LPS ;; 
+              NN) mkdir -p data/ && cp lw*.wei data/ && cp t10k-images-idx3-ubyte data/ && ./ispass-2009-NN 28 ;; 
+              NQU) ./ispass-2009-NQU ;; 
+            esac && 
+            cd ..; 
+          done"
       shell: bash
