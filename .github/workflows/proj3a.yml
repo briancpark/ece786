@@ -22,7 +22,7 @@ jobs:
       CUDA_INSTALL_PATH: /usr/local/cuda-10.1
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v1
 
     - name: Set CUDA path globally
       run: |
