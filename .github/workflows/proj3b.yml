@@ -20,7 +20,7 @@ jobs:
         with:
           cuda: '12.1.0'
           method: 'network'
-          sub-packages: '["nvcc", "cublas", "cudart"]'
+          sub-packages: '["nvcc", "cudart"]'
       - name: Compile Proj3B
         run: |
           cd proj/proj3/proj3b
