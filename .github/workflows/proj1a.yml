@@ -25,9 +25,5 @@ jobs:
         run: |
           cd proj/proj1/proj1a
           make
-      - name: Run Proj1A
-        run: |
-          cd proj/proj1/proj1a
-          make -j
           make clean
-          make BENCHMARK=true -j
+          make BENCHMARK=true

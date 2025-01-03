@@ -24,8 +24,4 @@ jobs:
       - name: Compile Proj3B
         run: |
           cd proj/proj3/proj3b
-          make
-      - name: Run Proj3B
-        run: |
-          cd proj/proj3/proj3b
           make -j
