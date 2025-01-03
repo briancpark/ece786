@@ -28,4 +28,4 @@ jobs:
       - name: Run Proj3B
         run: |
           cd proj/proj3/proj3b
-          ./test.sh
+          make -j

@@ -28,5 +28,6 @@ jobs:
       - name: Run Proj1A
         run: |
           cd proj/proj1/proj1a
-          ./test.sh
-          ./benchmark.sh
+          make -j
+          make clean
+          make -DBENCHMARK -j
