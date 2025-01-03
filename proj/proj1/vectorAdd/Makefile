@@ -1,5 +1,5 @@
 # Location of the CUDA Toolkit
-NVCC := /usr/local/cuda/bin/nvcc
+NVCC := nvcc
 CCFLAGS := -O2
 
 build: vectorAdd

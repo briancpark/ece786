@@ -1,7 +1,12 @@
 # Location of the CUDA Toolkit
-NVCC := /usr/local/cuda/bin/nvcc
+NVCC := nvcc
 EXTRA_NVCCFLAGS := --cudart=shared
 CCFLAGS := -O3 -std=c++11
+
+# Enable BENCHMARK macro if BENCHMARK is set to true or 1
+ifdef BENCHMARK
+CCFLAGS += -DBENCHMARK
+endif
 
 all : build
 
