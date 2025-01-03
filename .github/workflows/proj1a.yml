@@ -30,4 +30,4 @@ jobs:
           cd proj/proj1/proj1a
           make -j
           make clean
-          make -DBENCHMARK -j
+          make BENCHMARK=true -j
