@@ -18,7 +18,7 @@ jobs:
       - uses: Jimver/cuda-toolkit@v0.2.22
         id: cuda-toolkit
         with:
-          cuda: '12.8.6'
+          cuda: '12.5.0'
           method: 'network'
           sub-packages: '["nvcc", "cudart"]'
       - name: Compile Proj1A
