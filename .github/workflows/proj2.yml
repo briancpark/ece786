@@ -151,4 +151,3 @@ jobs:
       with:
         name: task-2-output
         path: test/**/output.txt
-      shell: bash
