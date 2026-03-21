@@ -41,13 +41,13 @@ jobs:
       run: make all
 
     - name: Upload Project PDFs
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: project-pdfs
         path: latex/*.pdf
 
     - name: Upload HW PDFs
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v3
       with:
         name: hw-pdfs
         path: hw/*.pdf
